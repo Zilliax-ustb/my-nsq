@@ -75,7 +75,7 @@ func (p *LookupProtocolV1) IOLoop(c protocol.Client) error {
 	}
 
 	p.nsqlookupd.logf(LOG_INFO, "PROTOCOL(V1): [%s] exiting ioloop", client)
-
+	//在出现与客户端通信错误后，删除该客户端的所有注册信息
 	if client.peerInfo != nil {
 		registrations := p.nsqlookupd.DB.LookupRegistrations(client.peerInfo.id)
 		for _, r := range registrations {
