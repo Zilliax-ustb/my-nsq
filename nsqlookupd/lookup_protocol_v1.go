@@ -32,6 +32,7 @@ func (p *LookupProtocolV1) IOLoop(c protocol.Client) error {
 	client := c.(*ClientV1)
 
 	reader := bufio.NewReader(client)
+
 	for {
 		//读取用户命令
 		line, err = reader.ReadString('\n')
@@ -84,6 +85,7 @@ func (p *LookupProtocolV1) IOLoop(c protocol.Client) error {
 					client, r.Category, r.Key, r.SubKey)
 			}
 		}
+		p.nsqlookupd.logf(LOG_INFO, "客户端(%s)已断开连接并退出", client)
 	}
 
 	return err
@@ -247,6 +249,9 @@ func (p *LookupProtocolV1) IDENTIFY(client *ClientV1, reader *bufio.Reader, para
 
 	p.nsqlookupd.logf(LOG_INFO, "CLIENT(%s): IDENTIFY Address:%s TCP:%d HTTP:%d Version:%s",
 		client, peerInfo.BroadcastAddress, peerInfo.TCPPort, peerInfo.HTTPPort, peerInfo.Version)
+
+	//将节点的游离态设置为0，表示当前节点在线
+	peerInfo.free = 0
 
 	//将节点信息赋值
 	client.peerInfo = &peerInfo

@@ -12,7 +12,7 @@ type RegistrationDB struct {
 	registrationMap map[Registration]ProducerMap
 }
 
-// nsqd 节点信息
+// nsqd 注册信息
 type Registration struct {
 	Category string // 类别，client、topic、channel。其中client则表示nsqd在第一次连接nsqlookup的IDENTITY验证信息
 	Key      string //topic 名称
@@ -30,6 +30,7 @@ type PeerInfo struct {
 	TCPPort          int    `json:"tcp_port"`          //tcp接口
 	HTTPPort         int    `json:"http_port"`         //http接口
 	Version          string `json:"version"`           //nsqd版本
+	free             int    //游离标识，用于标记该节点暂离状态
 }
 
 /*
