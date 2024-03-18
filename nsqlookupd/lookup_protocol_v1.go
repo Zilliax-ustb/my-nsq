@@ -226,12 +226,15 @@ func (p *LookupProtocolV1) IDENTIFY(client *ClientV1, reader *bufio.Reader, para
 	}
 
 	// body is a json structure with producer information
+	//首先设置nsq节点的id
 	peerInfo := PeerInfo{id: client.RemoteAddr().String()}
+	//将json格式的body解码存入到peerInfo
 	err = json.Unmarshal(body, &peerInfo)
 	if err != nil {
 		return nil, protocol.NewFatalClientErr(err, "E_BAD_BODY", "IDENTIFY failed to decode JSON body")
 	}
 
+	//设置节点的ip地址信息
 	peerInfo.RemoteAddress = client.RemoteAddr().String()
 
 	// require all fields
@@ -239,11 +242,13 @@ func (p *LookupProtocolV1) IDENTIFY(client *ClientV1, reader *bufio.Reader, para
 		return nil, protocol.NewFatalClientErr(nil, "E_BAD_BODY", "IDENTIFY missing fields")
 	}
 
+	//更新节点最新响应时间戳
 	atomic.StoreInt64(&peerInfo.lastUpdate, time.Now().UnixNano())
 
 	p.nsqlookupd.logf(LOG_INFO, "CLIENT(%s): IDENTIFY Address:%s TCP:%d HTTP:%d Version:%s",
 		client, peerInfo.BroadcastAddress, peerInfo.TCPPort, peerInfo.HTTPPort, peerInfo.Version)
 
+	//将节点信息赋值
 	client.peerInfo = &peerInfo
 	if p.nsqlookupd.DB.AddProducer(Registration{"client", "", ""}, &Producer{peerInfo: client.peerInfo}) {
 		p.nsqlookupd.logf(LOG_INFO, "DB: client(%s) REGISTER category:%s key:%s subkey:%s", client, "client", "", "")

@@ -20,6 +20,7 @@ type Registration struct {
 }
 type Registrations []Registration
 
+// nsq节点信息  ***核心部分***
 type PeerInfo struct {
 	lastUpdate       int64  //nsqd 上次ping的时间
 	id               string //nsqd唯一ID
@@ -49,7 +50,7 @@ func (p *Producer) String() string {
 	return fmt.Sprintf("%s [%d, %d]", p.peerInfo.BroadcastAddress, p.peerInfo.TCPPort, p.peerInfo.HTTPPort)
 }
 
-// 逻辑删除生产者
+// 将生产者标记为逻辑删除
 func (p *Producer) Tombstone() {
 	p.tombstoned = true
 	p.tombstonedAt = time.Now()
@@ -250,7 +251,7 @@ func (rr Registrations) SubKeys() []string {
 	return subkeys
 }
 
-// 根据给定的生产者的存活时间和墓碑的存活时间来获取符合条件的生产者
+// 根据给定的生产者的存活时间和墓碑的存活时间来获取仍活着的生产者
 func (pp Producers) FilterByActive(inactivityTimeout time.Duration, tombstoneLifetime time.Duration) Producers {
 	now := time.Now()
 	results := Producers{}

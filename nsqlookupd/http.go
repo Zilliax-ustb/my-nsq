@@ -105,6 +105,7 @@ func (s *httpServer) doChannels(w http.ResponseWriter, req *http.Request, ps htt
 	}, nil
 }
 
+// 查询特定主题（topic）的注册信息、通道（channel）列表以及生产者（producer）列表
 func (s *httpServer) doLookup(w http.ResponseWriter, req *http.Request, ps httprouter.Params) (interface{}, error) {
 	reqParams, err := http_api.NewReqParams(req)
 	if err != nil {
@@ -121,6 +122,7 @@ func (s *httpServer) doLookup(w http.ResponseWriter, req *http.Request, ps httpr
 		return nil, http_api.Err{404, "TOPIC_NOT_FOUND"}
 	}
 
+	//找到该主题下的所有频道和生产者
 	channels := s.nsqlookupd.DB.FindRegistrations("channel", topicName, "*").SubKeys()
 	producers := s.nsqlookupd.DB.FindProducers("topic", topicName, "")
 	producers = producers.FilterByActive(s.nsqlookupd.opts.InactiveProducerTimeout,
@@ -179,6 +181,7 @@ func (s *httpServer) doDeleteTopic(w http.ResponseWriter, req *http.Request, ps 
 	return nil, nil
 }
 
+// 将特定主题的生产者标记为“墓碑”
 func (s *httpServer) doTombstoneTopicProducer(w http.ResponseWriter, req *http.Request, ps httprouter.Params) (interface{}, error) {
 	reqParams, err := http_api.NewReqParams(req)
 	if err != nil {
@@ -196,9 +199,11 @@ func (s *httpServer) doTombstoneTopicProducer(w http.ResponseWriter, req *http.R
 	}
 
 	s.nsqlookupd.logf(LOG_INFO, "DB: setting tombstone for producer@%s of topic(%s)", node, topicName)
+	//找到特定主题的生产者们
 	producers := s.nsqlookupd.DB.FindProducers("topic", topicName, "")
 	for _, p := range producers {
 		thisNode := fmt.Sprintf("%s:%d", p.peerInfo.BroadcastAddress, p.peerInfo.HTTPPort)
+		//如果这些生产者与返回的节点相同，则设置为“墓碑”   （返回的node中已经忽略了已经是“墓碑”的节点）
 		if thisNode == node {
 			p.Tombstone()
 		}
