@@ -23,7 +23,7 @@ type Registrations []Registration
 // nsq节点信息  ***核心部分***
 type PeerInfo struct {
 	lastUpdate       int64  //nsqd 上次ping的时间
-	id               string //nsqd唯一ID
+	id               string //nsqd连接唯一ID，代表此次连接nsq节点的ip地址
 	RemoteAddress    string `json:"remote_address"`    //ip地址
 	Hostname         string `json:"hostname"`          //主机名称
 	BroadcastAddress string `json:"broadcast_address"` //广播地址
@@ -31,6 +31,7 @@ type PeerInfo struct {
 	HTTPPort         int    `json:"http_port"`         //http接口
 	Version          string `json:"version"`           //nsqd版本
 	free             int    //游离标识，用于标记该节点暂离状态
+	IpAddress        string //nsq节点的ip地址，用于确定唯一的nsq
 }
 
 /*

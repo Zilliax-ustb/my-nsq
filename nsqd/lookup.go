@@ -94,6 +94,7 @@ func (n *NSQD) lookupLoop() {
 			//循环所有的lookupd地址
 			for _, host := range n.getOpts().NSQLookupdTCPAddresses {
 				if in(host, lookupAddrs) {
+					//如果lookup地址已有，则跳过
 					continue
 				}
 				n.logf(LOG_INFO, "LOOKUP(%s): adding peer", host)

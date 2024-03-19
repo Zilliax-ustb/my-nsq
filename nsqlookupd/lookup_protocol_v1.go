@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -35,7 +36,7 @@ func (p *LookupProtocolV1) IOLoop(c protocol.Client) error {
 
 	for {
 		//读取用户命令
-		line, err = reader.ReadString('\n')
+		line, err = reader.ReadString('\n') //断开连接错误由此产生，并直接跳出循环
 		if err != nil {
 			break
 		}
@@ -75,6 +76,14 @@ func (p *LookupProtocolV1) IOLoop(c protocol.Client) error {
 		}
 	}
 
+	//需要判断err是否是断开连接，据此设置游离态
+	if strings.Contains(err.Error(), "An existing connection was forcibly closed by the remote host.") {
+		p.nsqlookupd.logf(LOG_INFO, "检测到节点(%s)断开连接,已将其设置为游离态", client)
+		//设置节点为游离态
+		client.peerInfo.free = 1
+		return nil
+	}
+
 	p.nsqlookupd.logf(LOG_INFO, "PROTOCOL(V1): [%s] exiting ioloop", client)
 	//在出现与客户端通信错误后，删除该客户端的所有注册信息
 	if client.peerInfo != nil {
@@ -87,7 +96,6 @@ func (p *LookupProtocolV1) IOLoop(c protocol.Client) error {
 		}
 		p.nsqlookupd.logf(LOG_INFO, "客户端(%s)已断开连接并退出", client)
 	}
-
 	return err
 }
 
@@ -230,6 +238,7 @@ func (p *LookupProtocolV1) IDENTIFY(client *ClientV1, reader *bufio.Reader, para
 	// body is a json structure with producer information
 	//首先设置nsq节点的id
 	peerInfo := PeerInfo{id: client.RemoteAddr().String()}
+
 	//将json格式的body解码存入到peerInfo
 	err = json.Unmarshal(body, &peerInfo)
 	if err != nil {
@@ -252,6 +261,8 @@ func (p *LookupProtocolV1) IDENTIFY(client *ClientV1, reader *bufio.Reader, para
 
 	//将节点的游离态设置为0，表示当前节点在线
 	peerInfo.free = 0
+	//设置节点的唯一标识
+	peerInfo.IpAddress = strings.Split(peerInfo.id, ":")[0] + ":" + strconv.Itoa(peerInfo.TCPPort)
 
 	//将节点信息赋值
 	client.peerInfo = &peerInfo

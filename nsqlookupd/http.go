@@ -267,6 +267,7 @@ type node struct {
 	Version          string   `json:"version"`
 	Tombstones       []bool   `json:"tombstones"`
 	Topics           []string `json:"topics"`
+	Free             int
 }
 
 func (s *httpServer) doNodes(w http.ResponseWriter, req *http.Request, ps httprouter.Params) (interface{}, error) {
@@ -313,6 +314,7 @@ func (s *httpServer) doNodes(w http.ResponseWriter, req *http.Request, ps httpro
 			Version:          p.peerInfo.Version,
 			Tombstones:       tombstones,
 			Topics:           topics,
+			Free:             p.peerInfo.free,
 		}
 	}
 

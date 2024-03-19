@@ -9,7 +9,9 @@ import (
 	"log"
 	"net"
 	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -72,12 +74,20 @@ func (l *NSQLookupd) Main() error {
 		exitFunc(http_api.Serve(l.httpListener, httpServer, "HTTP", l.logf))
 	})
 
+	ec := make(chan os.Signal, 1)
+	signal.Notify(ec, syscall.SIGINT, syscall.SIGTERM)
 	//开启一个协程来运行节点管理算法
-	//每隔10秒输出所有节点信息
+	//每隔15秒输出所有节点信息(包括游离态节点)
 	l.waitGroup.Wrap(func() {
+		ticker := time.NewTicker(15 * time.Second)
 		for {
-			l.ShowNodes()
-			time.Sleep(10 * time.Second)
+			select {
+			case <-ec:
+				l.logf(LOG_INFO, "程序结束，nsqlookupd已退出")
+				return
+			case <-ticker.C:
+				l.ShowNodes()
+			}
 		}
 	})
 
@@ -108,6 +118,15 @@ func (l *NSQLookupd) Exit() {
 	l.waitGroup.Wait()
 }
 
+func (l *NSQLookupd) QShowNodes() error {
+	for {
+		l.ShowNodes()
+		time.Sleep(15 * time.Second)
+	}
+	return nil
+}
+
+// 输出所有节点信息(包括游离态节点)
 func (l *NSQLookupd) ShowNodes() {
 	// dont filter out tombstoned nodes
 	//不过滤逻辑删除的节点
@@ -152,12 +171,13 @@ func (l *NSQLookupd) ShowNodes() {
 			Version:          p.peerInfo.Version,
 			Tombstones:       tombstones,
 			Topics:           topics,
+			Free:             p.peerInfo.free,
 		}
 	}
 
 	l.logf(LOG_INFO, "当前所有节点：")
 	for i, n := range nodes {
-		l.logf(LOG_INFO, "%d 号节点:, %s", i, n.RemoteAddress)
+		l.logf(LOG_INFO, "(%d)号节点: %s::%d,游离状态: %d", i, n.RemoteAddress, n.TCPPort, n.Free)
 
 	}
 }
