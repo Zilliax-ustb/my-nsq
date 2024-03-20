@@ -118,14 +118,6 @@ func (l *NSQLookupd) Exit() {
 	l.waitGroup.Wait()
 }
 
-func (l *NSQLookupd) QShowNodes() error {
-	for {
-		l.ShowNodes()
-		time.Sleep(15 * time.Second)
-	}
-	return nil
-}
-
 // 输出所有节点信息(包括游离态节点)
 func (l *NSQLookupd) ShowNodes() {
 	//查找所有节点
@@ -156,9 +148,8 @@ func (l *NSQLookupd) ShowNodes() {
 		}
 	}
 
-	l.logf(LOG_INFO, "当前所有节点：")
+	l.logf(LOG_INFO, "当前所有节点:")
 	for i, n := range nodes {
 		l.logf(LOG_INFO, "(%d)号节点: %s, 游离状态: %d", i, n.IpAddress, n.Free)
-
 	}
 }

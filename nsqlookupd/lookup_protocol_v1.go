@@ -78,7 +78,7 @@ func (p *LookupProtocolV1) IOLoop(c protocol.Client) error {
 
 	//需要判断err是否是断开连接，据此设置游离态
 	if strings.Contains(err.Error(), "An existing connection was forcibly closed by the remote host.") {
-		p.nsqlookupd.logf(LOG_INFO, "检测到节点(%s)断开连接,已将其设置为游离态", client)
+		p.nsqlookupd.logf(LOG_INFO, "检测到节点(%s)断开连接,已将其设置为游离态", client.peerInfo.IpAddress)
 		//设置节点为游离态
 		client.peerInfo.free = 1
 		return nil
@@ -256,6 +256,8 @@ func (p *LookupProtocolV1) IDENTIFY(client *ClientV1, reader *bufio.Reader, para
 			client.peerInfo = n.peerInfo
 			//更新节点id，id每次重连都会改变
 			client.peerInfo.id = peerInfo.id
+			//更新节点的远程地址
+			client.peerInfo.RemoteAddress = client.RemoteAddr().String()
 			//更新节点的上次响应时间为现在
 			atomic.StoreInt64(&client.peerInfo.lastUpdate, time.Now().UnixNano())
 			//取消节点的游离态

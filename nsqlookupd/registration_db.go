@@ -30,7 +30,7 @@ type PeerInfo struct {
 	TCPPort          int    `json:"tcp_port"`          //tcp接口
 	HTTPPort         int    `json:"http_port"`         //http接口
 	Version          string `json:"version"`           //nsqd版本
-	free             int    //游离标识，用于标记该节点暂离状态
+	free             int64  //游离标识，用于标记该节点暂离状态
 	IpAddress        string //nsq节点的ip地址，用于确定唯一的nsq
 }
 
@@ -263,7 +263,8 @@ func (pp Producers) FilterByActive(inactivityTimeout time.Duration, tombstoneLif
 		cur := time.Unix(0, atomic.LoadInt64(&p.peerInfo.lastUpdate))
 		//如果生产者最大活跃时间内未响应或者已被标记为暂离状态，则跳过
 		//如果距离上次ping的时间超过300秒（默认存活判别时间）则会被忽略
-		if now.Sub(cur) > inactivityTimeout || p.IsTombstoned(tombstoneLifetime) {
+		//如果节点为游离态，则跳过
+		if atomic.LoadInt64(&p.peerInfo.free) == 1 || now.Sub(cur) > inactivityTimeout || p.IsTombstoned(tombstoneLifetime) {
 			continue
 		}
 		//否则加入到结果中

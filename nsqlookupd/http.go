@@ -267,7 +267,7 @@ type node struct {
 	Version          string   `json:"version"`
 	Tombstones       []bool   `json:"tombstones"`
 	Topics           []string `json:"topics"`
-	Free             int
+	Free             int64
 	IpAddress        string
 }
 

@@ -860,6 +860,7 @@ func (c *ClusterInfo) actionHelper(topicName string, lookupdHTTPAddrs []string, 
 }
 
 func (c *ClusterInfo) GetProducers(lookupdHTTPAddrs []string, nsqdHTTPAddrs []string) (Producers, error) {
+	//如果有nsqlookupd地址，则返回nsqlookupd连接的节点
 	if len(lookupdHTTPAddrs) != 0 {
 		return c.GetLookupdProducers(lookupdHTTPAddrs)
 	}
