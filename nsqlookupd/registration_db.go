@@ -59,6 +59,7 @@ func (p *Producer) Tombstone() {
 }
 
 // 判断生产者是否被逻辑删除
+// 只有被标识为逻辑删除并且
 func (p *Producer) IsTombstoned(lifetime time.Duration) bool {
 	return p.tombstoned && time.Since(p.tombstonedAt) < lifetime
 }
@@ -261,6 +262,7 @@ func (pp Producers) FilterByActive(inactivityTimeout time.Duration, tombstoneLif
 		//获得生产者最后一次ping的时间
 		cur := time.Unix(0, atomic.LoadInt64(&p.peerInfo.lastUpdate))
 		//如果生产者最大活跃时间内未响应或者已被标记为暂离状态，则跳过
+		//如果距离上次ping的时间超过300秒（默认存活判别时间）则会被忽略
 		if now.Sub(cur) > inactivityTimeout || p.IsTombstoned(tombstoneLifetime) {
 			continue
 		}
@@ -289,4 +291,18 @@ func ProducerMap2Slice(pm ProducerMap) Producers {
 	}
 	//返回切片
 	return producers
+}
+
+func (r *RegistrationDB) FindAllFreeNodes() Producers {
+	//找到所有节点
+	producers := r.FindProducers("client", "", "")
+	var retproducers Producers
+	for _, p := range producers {
+		//如果该节点是游离态，则将其加入结果
+		if p.peerInfo.free == 1 {
+			retproducers = append(retproducers, p)
+		}
+	}
+	return retproducers
+
 }

@@ -245,6 +245,45 @@ func (p *LookupProtocolV1) IDENTIFY(client *ClientV1, reader *bufio.Reader, para
 		return nil, protocol.NewFatalClientErr(err, "E_BAD_BODY", "IDENTIFY failed to decode JSON body")
 	}
 
+	//判断该节点是否是游离的节点，如果是则找回之前的注册信息
+	//找到所有游离态节点
+	allFreeNodes := p.nsqlookupd.DB.FindAllFreeNodes()
+	client_IP := strings.Split(peerInfo.id, ":")[0] + ":" + strconv.Itoa(peerInfo.TCPPort)
+	for _, n := range allFreeNodes {
+		//如果确定是之前游离态的节点
+		if client_IP == n.peerInfo.IpAddress {
+			//将节点信息找回
+			client.peerInfo = n.peerInfo
+			//更新节点id，id每次重连都会改变
+			client.peerInfo.id = peerInfo.id
+			//更新节点的上次响应时间为现在
+			atomic.StoreInt64(&client.peerInfo.lastUpdate, time.Now().UnixNano())
+			//取消节点的游离态
+			client.peerInfo.free = 0
+			p.nsqlookupd.logf(LOG_INFO, "游离态节点:%s 已重新连接", client.peerInfo.IpAddress)
+
+			// build a response
+			data := make(map[string]interface{})
+			data["tcp_port"] = p.nsqlookupd.RealTCPAddr().Port
+			data["http_port"] = p.nsqlookupd.RealHTTPAddr().Port
+			data["version"] = version.Binary
+			hostname, err := os.Hostname()
+			if err != nil {
+				log.Fatalf("ERROR: unable to get hostname %s", err)
+			}
+			data["broadcast_address"] = p.nsqlookupd.opts.BroadcastAddress
+			data["hostname"] = hostname
+
+			//将nsqlookupd的信息回传给nsqd
+			response, err := json.Marshal(data)
+			if err != nil {
+				p.nsqlookupd.logf(LOG_ERROR, "marshaling %v", data)
+				return []byte("OK"), nil
+			}
+			return response, nil
+		}
+	}
+
 	//设置节点的ip地址信息
 	peerInfo.RemoteAddress = client.RemoteAddr().String()
 
@@ -262,7 +301,7 @@ func (p *LookupProtocolV1) IDENTIFY(client *ClientV1, reader *bufio.Reader, para
 	//将节点的游离态设置为0，表示当前节点在线
 	peerInfo.free = 0
 	//设置节点的唯一标识
-	peerInfo.IpAddress = strings.Split(peerInfo.id, ":")[0] + ":" + strconv.Itoa(peerInfo.TCPPort)
+	peerInfo.IpAddress = client_IP
 
 	//将节点信息赋值
 	client.peerInfo = &peerInfo
@@ -282,6 +321,7 @@ func (p *LookupProtocolV1) IDENTIFY(client *ClientV1, reader *bufio.Reader, para
 	data["broadcast_address"] = p.nsqlookupd.opts.BroadcastAddress
 	data["hostname"] = hostname
 
+	//将nsqlookupd的信息回传给nsqd
 	response, err := json.Marshal(data)
 	if err != nil {
 		p.nsqlookupd.logf(LOG_ERROR, "marshaling %v", data)

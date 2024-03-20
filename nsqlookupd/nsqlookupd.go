@@ -128,39 +128,19 @@ func (l *NSQLookupd) QShowNodes() error {
 
 // 输出所有节点信息(包括游离态节点)
 func (l *NSQLookupd) ShowNodes() {
-	// dont filter out tombstoned nodes
-	//不过滤逻辑删除的节点
-	//查找了所有无topic无channel且在存活时间内的producer
-	producers := l.DB.FindProducers("client", "", "").FilterByActive(
-		l.opts.InactiveProducerTimeout, 0)
+	//查找所有节点
+	producers := l.DB.FindProducers("client", "", "")
 	nodes := make([]*node, len(producers))
-	//话题-其生产者们map，一个话题对应了一个producers切片
-	topicProducersMap := make(map[string]Producers)
-	//遍历上述生产者   {p：当前生产者，topics：当前生产者的所有话题}
+
+	//遍历上述节点   {p：当前节点，topics：该节点的所有话题}
 	for i, p := range producers {
-		//根据生产者的id找到所有的Registrations，然后获得该生产者的所有话题名称
+		//根据节点的id找到该节点所有的话题
 		topics := l.DB.LookupRegistrations(p.peerInfo.id).Filter("topic", "*", "").Keys()
 
 		// for each topic find the producer that matches this peer
 		// to add tombstone information
+		// 遍历当前节点的每个话题，检查其生产者是否被逻辑删除
 		tombstones := make([]bool, len(topics))
-		for j, t := range topics {
-			//遍历所有topic，如果topic不在topicProducersMap里
-			if _, exists := topicProducersMap[t]; !exists {
-				//则将该topic加入，并查找所有topic名称为该话题的producers
-				topicProducersMap[t] = l.DB.FindProducers("topic", t, "")
-			}
-			//取得该topic下的producers
-			topicProducers := topicProducersMap[t]
-			//遍历这些producer，找到和当前producer相等的那个producer
-			for _, tp := range topicProducers {
-				if tp.peerInfo == p.peerInfo {
-					//判断tp是否过期，状态保存到tombstones中
-					tombstones[j] = tp.IsTombstoned(l.opts.TombstoneLifetime)
-					break
-				}
-			}
-		}
 		//当检查完该producer所有的topics后
 		nodes[i] = &node{
 			RemoteAddress:    p.peerInfo.RemoteAddress,
@@ -172,12 +152,13 @@ func (l *NSQLookupd) ShowNodes() {
 			Tombstones:       tombstones,
 			Topics:           topics,
 			Free:             p.peerInfo.free,
+			IpAddress:        p.peerInfo.IpAddress,
 		}
 	}
 
 	l.logf(LOG_INFO, "当前所有节点：")
 	for i, n := range nodes {
-		l.logf(LOG_INFO, "(%d)号节点: %s::%d,游离状态: %d", i, n.RemoteAddress, n.TCPPort, n.Free)
+		l.logf(LOG_INFO, "(%d)号节点: %s, 游离状态: %d", i, n.IpAddress, n.Free)
 
 	}
 }

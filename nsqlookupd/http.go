@@ -268,24 +268,26 @@ type node struct {
 	Tombstones       []bool   `json:"tombstones"`
 	Topics           []string `json:"topics"`
 	Free             int
+	IpAddress        string
 }
 
 func (s *httpServer) doNodes(w http.ResponseWriter, req *http.Request, ps httprouter.Params) (interface{}, error) {
 	// dont filter out tombstoned nodes
 	//不过滤逻辑删除的节点
-	//查找了所有无topic无channel且在存活时间内的producer
+	//查找所有节点
 	producers := s.nsqlookupd.DB.FindProducers("client", "", "").FilterByActive(
 		s.nsqlookupd.opts.InactiveProducerTimeout, 0)
 	nodes := make([]*node, len(producers))
 	//话题-其生产者们map，一个话题对应了一个producers切片
 	topicProducersMap := make(map[string]Producers)
-	//遍历上述生产者   {p：当前生产者，topics：当前生产者的所有话题}
+	//遍历上述节点   {p：当前节点，topics：该节点的所有话题}
 	for i, p := range producers {
-		//根据生产者的id找到所有的Registrations，然后获得该生产者的所有话题名称
+		//根据节点的id找到该节点所有的话题
 		topics := s.nsqlookupd.DB.LookupRegistrations(p.peerInfo.id).Filter("topic", "*", "").Keys()
 
 		// for each topic find the producer that matches this peer
 		// to add tombstone information
+		// 遍历当前节点的每个话题，检查其生产者是否被逻辑删除
 		tombstones := make([]bool, len(topics))
 		for j, t := range topics {
 			//遍历所有topic，如果topic不在topicProducersMap里
@@ -297,6 +299,7 @@ func (s *httpServer) doNodes(w http.ResponseWriter, req *http.Request, ps httpro
 			topicProducers := topicProducersMap[t]
 			//遍历这些producer，找到和当前producer相等的那个producer
 			for _, tp := range topicProducers {
+				//从该话题的所有节点中找到当前节点
 				if tp.peerInfo == p.peerInfo {
 					//判断tp是否过期，状态保存到tombstones中
 					tombstones[j] = tp.IsTombstoned(s.nsqlookupd.opts.TombstoneLifetime)
