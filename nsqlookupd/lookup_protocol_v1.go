@@ -85,11 +85,11 @@ func (p *LookupProtocolV1) IOLoop(c protocol.Client) error {
 		if client.peerInfo.freeNodeInfo == nil {
 			fnInfo := &FreeNodeInfo{
 				ReconnectCount:       0,
-				ReconnectionInterval: [10]int64{},
+				ReconnectionInterval: [10]float64{},
 				rFont:                0,
 				rRear:                0,
 				rSize:                0,
-				ConnectedInterval:    [10]int64{},
+				ConnectedInterval:    [10]float64{},
 				cFont:                0,
 				cRear:                0,
 				cSize:                0,
@@ -100,6 +100,7 @@ func (p *LookupProtocolV1) IOLoop(c protocol.Client) error {
 			//如果不是首次断开，只更新连接时长队列
 			client.peerInfo.freeNodeInfo.updateC(atomic.LoadInt64(&client.peerInfo.ConnectDate))
 		}
+		//记录下节点断开连接的时间
 		atomic.StoreInt64(&client.peerInfo.lastUpdate, time.Now().UnixNano())
 		return nil
 	}
@@ -290,6 +291,14 @@ func (p *LookupProtocolV1) IDENTIFY(client *ClientV1, reader *bufio.Reader, para
 			atomic.StoreInt64(&client.peerInfo.ConnectDate, time.Now().UnixNano())
 
 			p.nsqlookupd.logf(LOG_INFO, "游离态节点:%s 已重新连接", client.peerInfo.IpAddress)
+			p.nsqlookupd.logf(LOG_INFO, "节点已有断连间隔%d次", client.peerInfo.freeNodeInfo.rSize)
+			t := client.peerInfo.freeNodeInfo.rFont
+			for i := 0; i < client.peerInfo.freeNodeInfo.rSize; i++ {
+				p.nsqlookupd.logf(LOG_INFO, "第%d次断开间隔为%f秒", i, client.peerInfo.freeNodeInfo.ReconnectionInterval[t])
+				t = (t + 1) % 10
+
+			}
+			p.nsqlookupd.logf(LOG_INFO, "节点断连时间方差为：%f", client.peerInfo.freeNodeInfo.getRIvariance())
 
 			// build a response
 			data := make(map[string]interface{})

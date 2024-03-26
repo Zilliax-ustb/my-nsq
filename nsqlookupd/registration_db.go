@@ -22,15 +22,15 @@ type Registration struct {
 type Registrations []Registration
 
 type FreeNodeInfo struct {
-	ReconnectCount       int       //重连次数
-	ReconnectionInterval [10]int64 //重连时间间隔
-	rFont                int       //队列头
-	rRear                int       //队列尾
-	rSize                int       //队列长度
-	ConnectedInterval    [10]int64 //连接时长
-	cFont                int       //队列头
-	cRear                int       //队列尾
-	cSize                int       //队列长度
+	ReconnectCount       int         //重连次数
+	ReconnectionInterval [10]float64 //重连时间间隔,单位：s
+	rFont                int         //队列头
+	rRear                int         //队列尾
+	rSize                int         //队列长度
+	ConnectedInterval    [10]float64 //连接时长,单位：s
+	cFont                int         //队列头
+	cRear                int         //队列尾
+	cSize                int         //队列长度
 }
 
 // nsq节点信息  ***核心部分***
@@ -327,7 +327,7 @@ func (r *RegistrationDB) FindAllFreeNodes() Producers {
 func (fni *FreeNodeInfo) updateC(ConnectTime int64) {
 	//队列未满时,头不动，尾增加
 	if fni.cSize != 10 {
-		fni.ConnectedInterval[fni.cRear] = int64(time.Now().Sub(time.Unix(0, ConnectTime)))
+		fni.ConnectedInterval[fni.cRear] = float64(time.Now().Sub(time.Unix(0, ConnectTime))) / 1e9
 		//如果有9个元素，即更新后队列刚好满，则队尾无需移动
 		if fni.cSize != 9 {
 			fni.cRear = (fni.cRear + 1) % 10
@@ -338,7 +338,7 @@ func (fni *FreeNodeInfo) updateC(ConnectTime int64) {
 		//如果队列已满，则挤掉最早的数据
 		fni.cFont = (fni.cFont + 1) % 10
 		fni.cRear = (fni.cRear + 1) % 10
-		fni.ConnectedInterval[fni.cRear] = int64(time.Now().Sub(time.Unix(0, ConnectTime)))
+		fni.ConnectedInterval[fni.cRear] = float64(time.Now().Sub(time.Unix(0, ConnectTime))) / 1e9
 		return
 	}
 }
@@ -347,7 +347,7 @@ func (fni *FreeNodeInfo) updateC(ConnectTime int64) {
 func (fni *FreeNodeInfo) updateR(lastTime int64) {
 	//队列未满时,头不动，尾增加
 	if fni.rSize != 10 {
-		fni.ReconnectionInterval[fni.rRear] = int64(time.Now().Sub(time.Unix(0, lastTime)))
+		fni.ReconnectionInterval[fni.rRear] = float64(time.Now().Sub(time.Unix(0, lastTime))) / 1e9
 		//如果有9个元素，即更新后队列刚好满，则队尾无需移动
 		if fni.rSize != 9 {
 			fni.rRear = (fni.rRear + 1) % 10
@@ -358,41 +358,42 @@ func (fni *FreeNodeInfo) updateR(lastTime int64) {
 		//如果队列已满，则挤掉最早的数据
 		fni.rFont = (fni.rFont + 1) % 10
 		fni.rRear = (fni.rRear + 1) % 10
-		fni.ReconnectionInterval[fni.rRear] = int64(time.Now().Sub(time.Unix(0, lastTime)))
+		fni.ReconnectionInterval[fni.rRear] = float64(time.Now().Sub(time.Unix(0, lastTime))) / 1e9
 		return
 	}
 }
 
 // 返回断连时间间隔的平均值
-func (fni *FreeNodeInfo) getRIavage() int64 {
-	var res int64 = 0
+func (fni *FreeNodeInfo) getRIavage() float64 {
+
+	var res float64 = 0
 	t := fni.rFont
 	for i := 0; i < fni.rSize; i++ {
 		res = res + fni.ReconnectionInterval[t]
 		t = (t + 1) % 10
 	}
-	return res / int64(fni.rSize)
+	return res / float64(fni.rSize)
 }
 
 // 返回断连时间间隔的方差
-func (fni *FreeNodeInfo) getRIvariance() int64 {
+func (fni *FreeNodeInfo) getRIvariance() float64 {
 	t := fni.rFont
 	ava := fni.getRIavage()
-	var res int64 = 0
+	var res float64 = 0
 	for i := 0; i < fni.rSize; i++ {
-		res = res + int64(math.Pow(float64(fni.ReconnectionInterval[t]-ava), 2))
+		res = res + math.Pow(fni.ReconnectionInterval[t]-ava, 2)
 		t = (t + 1) % 10
 	}
-	return res / int64(fni.rSize)
+	return res / float64(fni.rSize)
 }
 
 // 返回连接时长的平均值
-func (fni *FreeNodeInfo) getCIavage() int64 {
-	var res int64 = 0
+func (fni *FreeNodeInfo) getCIavage() float64 {
+	var res float64 = 0
 	t := fni.cFont
 	for i := 0; i < fni.cSize; i++ {
 		res = res + fni.ConnectedInterval[t]
 		t = (t + 1) % 10
 	}
-	return res / int64(fni.rSize)
+	return res / float64(fni.rSize)
 }
