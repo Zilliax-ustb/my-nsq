@@ -2,6 +2,7 @@ package nsqlookupd
 
 import (
 	"fmt"
+	"math"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -20,18 +21,33 @@ type Registration struct {
 }
 type Registrations []Registration
 
+type FreeNodeInfo struct {
+	ReconnectCount       int       //重连次数
+	ReconnectionInterval [10]int64 //重连时间间隔
+	rFont                int       //队列头
+	rRear                int       //队列尾
+	rSize                int       //队列长度
+	ConnectedInterval    [10]int64 //连接时长
+	cFont                int       //队列头
+	cRear                int       //队列尾
+	cSize                int       //队列长度
+}
+
 // nsq节点信息  ***核心部分***
 type PeerInfo struct {
-	lastUpdate       int64  //nsqd 上次ping的时间
-	id               string //nsqd连接唯一ID，代表此次连接nsq节点的ip地址
-	RemoteAddress    string `json:"remote_address"`    //ip地址
-	Hostname         string `json:"hostname"`          //主机名称
-	BroadcastAddress string `json:"broadcast_address"` //广播地址
-	TCPPort          int    `json:"tcp_port"`          //tcp接口
-	HTTPPort         int    `json:"http_port"`         //http接口
-	Version          string `json:"version"`           //nsqd版本
-	free             int64  //游离标识，用于标记该节点暂离状态
-	IpAddress        string //nsq节点的ip地址，用于确定唯一的nsq
+	lastUpdate       int64         //nsqd 上次ping的时间
+	id               string        //nsqd连接唯一ID，代表此次连接nsq节点的ip地址
+	RemoteAddress    string        `json:"remote_address"`    //ip地址
+	Hostname         string        `json:"hostname"`          //主机名称
+	BroadcastAddress string        `json:"broadcast_address"` //广播地址
+	TCPPort          int           `json:"tcp_port"`          //tcp接口
+	HTTPPort         int           `json:"http_port"`         //http接口
+	Version          string        `json:"version"`           //nsqd版本
+	free             int64         //游离标识，用于标记该节点暂离状态
+	IpAddress        string        //nsq节点的ip地址，用于确定唯一的nsq
+	ConnectDate      int64         //每次连接时的时间,用于计算该次连接时长
+	freeNodeInfo     *FreeNodeInfo //节点游离参数保存
+
 }
 
 /*
@@ -300,10 +316,83 @@ func (r *RegistrationDB) FindAllFreeNodes() Producers {
 	var retproducers Producers
 	for _, p := range producers {
 		//如果该节点是游离态，则将其加入结果
-		if p.peerInfo.free == 1 {
+		if atomic.LoadInt64(&p.peerInfo.free) == 1 {
 			retproducers = append(retproducers, p)
 		}
 	}
 	return retproducers
+}
 
+// 更新连接时长队列
+func (fni *FreeNodeInfo) updateC(ConnectTime int64) {
+	//队列未满时,头不动，尾增加
+	if fni.cSize != 10 {
+		fni.ConnectedInterval[fni.cRear] = int64(time.Now().Sub(time.Unix(0, ConnectTime)))
+		//如果有9个元素，即更新后队列刚好满，则队尾无需移动
+		if fni.cSize != 9 {
+			fni.cRear = (fni.cRear + 1) % 10
+		}
+		fni.cSize++
+		return
+	} else {
+		//如果队列已满，则挤掉最早的数据
+		fni.cFont = (fni.cFont + 1) % 10
+		fni.cRear = (fni.cRear + 1) % 10
+		fni.ConnectedInterval[fni.cRear] = int64(time.Now().Sub(time.Unix(0, ConnectTime)))
+		return
+	}
+}
+
+// 更新断连时长队列
+func (fni *FreeNodeInfo) updateR(lastTime int64) {
+	//队列未满时,头不动，尾增加
+	if fni.rSize != 10 {
+		fni.ReconnectionInterval[fni.rRear] = int64(time.Now().Sub(time.Unix(0, lastTime)))
+		//如果有9个元素，即更新后队列刚好满，则队尾无需移动
+		if fni.rSize != 9 {
+			fni.rRear = (fni.rRear + 1) % 10
+		}
+		fni.rSize++
+		return
+	} else {
+		//如果队列已满，则挤掉最早的数据
+		fni.rFont = (fni.rFont + 1) % 10
+		fni.rRear = (fni.rRear + 1) % 10
+		fni.ReconnectionInterval[fni.rRear] = int64(time.Now().Sub(time.Unix(0, lastTime)))
+		return
+	}
+}
+
+// 返回断连时间间隔的平均值
+func (fni *FreeNodeInfo) getRIavage() int64 {
+	var res int64 = 0
+	t := fni.rFont
+	for i := 0; i < fni.rSize; i++ {
+		res = res + fni.ReconnectionInterval[t]
+		t = (t + 1) % 10
+	}
+	return res / int64(fni.rSize)
+}
+
+// 返回断连时间间隔的方差
+func (fni *FreeNodeInfo) getRIvariance() int64 {
+	t := fni.rFont
+	ava := fni.getRIavage()
+	var res int64 = 0
+	for i := 0; i < fni.rSize; i++ {
+		res = res + int64(math.Pow(float64(fni.ReconnectionInterval[t]-ava), 2))
+		t = (t + 1) % 10
+	}
+	return res / int64(fni.rSize)
+}
+
+// 返回连接时长的平均值
+func (fni *FreeNodeInfo) getCIavage() int64 {
+	var res int64 = 0
+	t := fni.cFont
+	for i := 0; i < fni.cSize; i++ {
+		res = res + fni.ConnectedInterval[t]
+		t = (t + 1) % 10
+	}
+	return res / int64(fni.rSize)
 }

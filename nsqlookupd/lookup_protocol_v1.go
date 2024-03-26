@@ -80,7 +80,27 @@ func (p *LookupProtocolV1) IOLoop(c protocol.Client) error {
 	if strings.Contains(err.Error(), "An existing connection was forcibly closed by the remote host.") {
 		p.nsqlookupd.logf(LOG_INFO, "检测到节点(%s)断开连接,已将其设置为游离态", client.peerInfo.IpAddress)
 		//设置节点为游离态
-		client.peerInfo.free = 1
+		atomic.StoreInt64(&client.peerInfo.free, 1)
+		//如果是首次断开,初始化结构体，并更新连接时长数组
+		if client.peerInfo.freeNodeInfo == nil {
+			fnInfo := &FreeNodeInfo{
+				ReconnectCount:       0,
+				ReconnectionInterval: [10]int64{},
+				rFont:                0,
+				rRear:                0,
+				rSize:                0,
+				ConnectedInterval:    [10]int64{},
+				cFont:                0,
+				cRear:                0,
+				cSize:                0,
+			}
+			client.peerInfo.freeNodeInfo = fnInfo
+			client.peerInfo.freeNodeInfo.updateC(atomic.LoadInt64(&client.peerInfo.ConnectDate))
+		} else {
+			//如果不是首次断开，只更新连接时长队列
+			client.peerInfo.freeNodeInfo.updateC(atomic.LoadInt64(&client.peerInfo.ConnectDate))
+		}
+		atomic.StoreInt64(&client.peerInfo.lastUpdate, time.Now().UnixNano())
 		return nil
 	}
 
@@ -258,10 +278,17 @@ func (p *LookupProtocolV1) IDENTIFY(client *ClientV1, reader *bufio.Reader, para
 			client.peerInfo.id = peerInfo.id
 			//更新节点的远程地址
 			client.peerInfo.RemoteAddress = client.RemoteAddr().String()
+
+			//取消节点的游离态
+			atomic.StoreInt64(&client.peerInfo.free, 0)
+			//更新节点重连次数
+			client.peerInfo.freeNodeInfo.ReconnectCount = client.peerInfo.freeNodeInfo.ReconnectCount + 1
+			//更新节点断连时长队列
+			client.peerInfo.freeNodeInfo.updateR(atomic.LoadInt64(&client.peerInfo.lastUpdate))
 			//更新节点的上次响应时间为现在
 			atomic.StoreInt64(&client.peerInfo.lastUpdate, time.Now().UnixNano())
-			//取消节点的游离态
-			client.peerInfo.free = 0
+			atomic.StoreInt64(&client.peerInfo.ConnectDate, time.Now().UnixNano())
+
 			p.nsqlookupd.logf(LOG_INFO, "游离态节点:%s 已重新连接", client.peerInfo.IpAddress)
 
 			// build a response
@@ -296,12 +323,13 @@ func (p *LookupProtocolV1) IDENTIFY(client *ClientV1, reader *bufio.Reader, para
 
 	//更新节点最新响应时间戳
 	atomic.StoreInt64(&peerInfo.lastUpdate, time.Now().UnixNano())
+	atomic.StoreInt64(&peerInfo.ConnectDate, time.Now().UnixNano())
 
 	p.nsqlookupd.logf(LOG_INFO, "CLIENT(%s): IDENTIFY Address:%s TCP:%d HTTP:%d Version:%s",
 		client, peerInfo.BroadcastAddress, peerInfo.TCPPort, peerInfo.HTTPPort, peerInfo.Version)
 
 	//将节点的游离态设置为0，表示当前节点在线
-	peerInfo.free = 0
+	atomic.StoreInt64(&peerInfo.free, 0)
 	//设置节点的唯一标识
 	peerInfo.IpAddress = client_IP
 
