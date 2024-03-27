@@ -15,6 +15,7 @@ import (
 	"github.com/nsqio/nsq/internal/lg"
 )
 
+// 话题-日志结构体
 type FileLogger struct {
 	logf     lg.AppLogFunc
 	opts     *Options
@@ -43,6 +44,7 @@ func NewFileLogger(logf lg.AppLogFunc, opts *Options, topic string, cfg *nsq.Con
 		return nil, err
 	}
 
+	//消费者中存储了主题名称
 	consumer, err := nsq.NewConsumer(topic, opts.Channel, cfg)
 	if err != nil {
 		return nil, err
@@ -59,12 +61,12 @@ func NewFileLogger(logf lg.AppLogFunc, opts *Options, topic string, cfg *nsq.Con
 		hupChan:        make(chan bool),
 	}
 	consumer.AddHandler(f)
-
+	//连接到配置中的nsq节点
 	err = consumer.ConnectToNSQDs(opts.NSQDTCPAddrs)
 	if err != nil {
 		return nil, err
 	}
-
+	//连接到配置中的nsqlookupd
 	err = consumer.ConnectToNSQLookupds(opts.NSQLookupdHTTPAddrs)
 	if err != nil {
 		return nil, err

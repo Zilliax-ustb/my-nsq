@@ -93,6 +93,7 @@ func (p *LookupProtocolV1) IOLoop(c protocol.Client) error {
 				cFont:                0,
 				cRear:                0,
 				cSize:                0,
+				MaxTolerateTime:      120,
 			}
 			client.peerInfo.freeNodeInfo = fnInfo
 			client.peerInfo.freeNodeInfo.updateC(atomic.LoadInt64(&client.peerInfo.ConnectDate))
@@ -108,9 +109,9 @@ func (p *LookupProtocolV1) IOLoop(c protocol.Client) error {
 	p.nsqlookupd.logf(LOG_INFO, "PROTOCOL(V1): [%s] exiting ioloop", client)
 	//在出现与客户端通信错误后，删除该客户端的所有注册信息
 	if client.peerInfo != nil {
-		registrations := p.nsqlookupd.DB.LookupRegistrations(client.peerInfo.id)
+		registrations := p.nsqlookupd.DB.LookupRegistrations(client.peerInfo.IpAddress)
 		for _, r := range registrations {
-			if removed, _ := p.nsqlookupd.DB.RemoveProducer(r, client.peerInfo.id); removed {
+			if removed, _ := p.nsqlookupd.DB.RemoveProducer(r, client.peerInfo.IpAddress); removed {
 				p.nsqlookupd.logf(LOG_INFO, "DB: client(%s) UNREGISTER category:%s key:%s subkey:%s",
 					client, r.Category, r.Key, r.SubKey)
 			}
@@ -200,7 +201,7 @@ func (p *LookupProtocolV1) UNREGISTER(client *ClientV1, reader *bufio.Reader, pa
 
 	if channel != "" {
 		key := Registration{"channel", topic, channel}
-		removed, left := p.nsqlookupd.DB.RemoveProducer(key, client.peerInfo.id)
+		removed, left := p.nsqlookupd.DB.RemoveProducer(key, client.peerInfo.IpAddress)
 		if removed {
 			p.nsqlookupd.logf(LOG_INFO, "DB: client(%s) UNREGISTER category:%s key:%s subkey:%s",
 				client, "channel", topic, channel)
@@ -216,7 +217,7 @@ func (p *LookupProtocolV1) UNREGISTER(client *ClientV1, reader *bufio.Reader, pa
 		// if anything is actually removed
 		registrations := p.nsqlookupd.DB.FindRegistrations("channel", topic, "*")
 		for _, r := range registrations {
-			removed, _ := p.nsqlookupd.DB.RemoveProducer(r, client.peerInfo.id)
+			removed, _ := p.nsqlookupd.DB.RemoveProducer(r, client.peerInfo.IpAddress)
 			if removed {
 				p.nsqlookupd.logf(LOG_WARN, "client(%s) unexpected UNREGISTER category:%s key:%s subkey:%s",
 					client, "channel", topic, r.SubKey)
@@ -224,7 +225,7 @@ func (p *LookupProtocolV1) UNREGISTER(client *ClientV1, reader *bufio.Reader, pa
 		}
 
 		key := Registration{"topic", topic, ""}
-		removed, left := p.nsqlookupd.DB.RemoveProducer(key, client.peerInfo.id)
+		removed, left := p.nsqlookupd.DB.RemoveProducer(key, client.peerInfo.IpAddress)
 		if removed {
 			p.nsqlookupd.logf(LOG_INFO, "DB: client(%s) UNREGISTER category:%s key:%s subkey:%s",
 				client, "topic", topic, "")
@@ -286,6 +287,9 @@ func (p *LookupProtocolV1) IDENTIFY(client *ClientV1, reader *bufio.Reader, para
 			client.peerInfo.freeNodeInfo.ReconnectCount = client.peerInfo.freeNodeInfo.ReconnectCount + 1
 			//更新节点断连时长队列
 			client.peerInfo.freeNodeInfo.updateR(atomic.LoadInt64(&client.peerInfo.lastUpdate))
+			//更新节点最大容忍时间
+			client.peerInfo.freeNodeInfo.updateMaxTolerateTime(1)
+			p.nsqlookupd.logf(LOG_INFO, "最大容忍时间已更新为%f", client.peerInfo.freeNodeInfo.MaxTolerateTime)
 			//更新节点的上次响应时间为现在
 			atomic.StoreInt64(&client.peerInfo.lastUpdate, time.Now().UnixNano())
 			atomic.StoreInt64(&client.peerInfo.ConnectDate, time.Now().UnixNano())

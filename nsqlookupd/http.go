@@ -82,6 +82,8 @@ func (s *httpServer) doInfo(w http.ResponseWriter, req *http.Request, ps httprou
 }
 
 func (s *httpServer) doTopics(w http.ResponseWriter, req *http.Request, ps httprouter.Params) (interface{}, error) {
+	//测试信用检查函数
+	s.nsqlookupd.checkCredit()
 	topics := s.nsqlookupd.DB.FindRegistrations("topic", "*", "").Keys()
 	return map[string]interface{}{
 		"topics": topics,
@@ -116,6 +118,9 @@ func (s *httpServer) doLookup(w http.ResponseWriter, req *http.Request, ps httpr
 	if err != nil {
 		return nil, http_api.Err{400, "MISSING_ARG_TOPIC"}
 	}
+
+	//检查所有游离节点
+	s.nsqlookupd.checkCredit()
 
 	registration := s.nsqlookupd.DB.FindRegistrations("topic", topicName, "")
 	if len(registration) == 0 {
@@ -283,7 +288,7 @@ func (s *httpServer) doNodes(w http.ResponseWriter, req *http.Request, ps httpro
 	//遍历上述节点   {p：当前节点，topics：该节点的所有话题}
 	for i, p := range producers {
 		//根据节点的id找到该节点所有的话题
-		topics := s.nsqlookupd.DB.LookupRegistrations(p.peerInfo.id).Filter("topic", "*", "").Keys()
+		topics := s.nsqlookupd.DB.LookupRegistrations(p.peerInfo.IpAddress).Filter("topic", "*", "").Keys()
 
 		// for each topic find the producer that matches this peer
 		// to add tombstone information

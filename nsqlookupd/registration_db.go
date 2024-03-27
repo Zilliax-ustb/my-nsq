@@ -23,20 +23,21 @@ type Registrations []Registration
 
 type FreeNodeInfo struct {
 	ReconnectCount       int         //重连次数
-	ReconnectionInterval [10]float64 //重连时间间隔,单位：s
-	rFont                int         //队列头
-	rRear                int         //队列尾
+	ReconnectionInterval [10]float64 //重连时间间隔,单位:s
+	rFont                int         //队列头,表示最旧的数据
+	rRear                int         //队列尾,表示最新的数据
 	rSize                int         //队列长度
-	ConnectedInterval    [10]float64 //连接时长,单位：s
+	ConnectedInterval    [10]float64 //连接时长,单位:s
 	cFont                int         //队列头
 	cRear                int         //队列尾
 	cSize                int         //队列长度
+	MaxTolerateTime      float64     //该节点的最大容忍时间，单位:s  (首次断开时，设置为600s)
 }
 
 // nsq节点信息  ***核心部分***
 type PeerInfo struct {
 	lastUpdate       int64         //nsqd 上次ping的时间
-	id               string        //nsqd连接唯一ID，代表此次连接nsq节点的ip地址
+	id               string        //nsqd连接ID，代表此次连接nsq节点的ip地址
 	RemoteAddress    string        `json:"remote_address"`    //ip地址
 	Hostname         string        `json:"hostname"`          //主机名称
 	BroadcastAddress string        `json:"broadcast_address"` //广播地址
@@ -107,9 +108,9 @@ func (r *RegistrationDB) AddProducer(k Registration, p *Producer) bool {
 		r.registrationMap[k] = make(map[string]*Producer)
 	}
 	producers := r.registrationMap[k]
-	_, found := producers[p.peerInfo.id]
+	_, found := producers[p.peerInfo.IpAddress]
 	if !found {
-		producers[p.peerInfo.id] = p
+		producers[p.peerInfo.IpAddress] = p
 	}
 	return !found
 }
@@ -198,9 +199,9 @@ func (r *RegistrationDB) FindProducers(category string, key string, subkey strin
 		//对于匹配的registration，遍历其producermap
 		for _, producer := range producers {
 			//将未加入的producer加入到retProducers中
-			_, found := results[producer.peerInfo.id]
+			_, found := results[producer.peerInfo.IpAddress]
 			if !found {
-				results[producer.peerInfo.id] = struct{}{}
+				results[producer.peerInfo.IpAddress] = struct{}{}
 				retProducers = append(retProducers, producer)
 			}
 		}
@@ -310,6 +311,7 @@ func ProducerMap2Slice(pm ProducerMap) Producers {
 	return producers
 }
 
+// 返回所有游离节点
 func (r *RegistrationDB) FindAllFreeNodes() Producers {
 	//找到所有节点
 	producers := r.FindProducers("client", "", "")
@@ -396,4 +398,19 @@ func (fni *FreeNodeInfo) getCIavage() float64 {
 		t = (t + 1) % 10
 	}
 	return res / float64(fni.rSize)
+}
+
+// 更新游离节点的最大容忍时间
+// 传入一个系数theta，用来修正最大容忍时间，默认情况为1
+// 采用线性递增权重，第i个时间间隔的权重为2*i/n(n+1)，n为总数，其中i越大表示距离现在时间越近,i从1开始取
+func (fni *FreeNodeInfo) updateMaxTolerateTime(theta float64) {
+	var res float64 = 0
+	var a float64
+	t := fni.rFont
+	for i := 0; i < fni.rSize; i++ {
+		a = 2 * float64(i+1) / float64(fni.rSize*(fni.rSize+1))
+		res = res + a*fni.ReconnectionInterval[t]
+		t = (t + 1) % 10
+	}
+	fni.MaxTolerateTime = res * theta
 }

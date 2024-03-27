@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 )
@@ -127,7 +128,7 @@ func (l *NSQLookupd) ShowNodes() {
 	//遍历上述节点   {p：当前节点，topics：该节点的所有话题}
 	for i, p := range producers {
 		//根据节点的id找到该节点所有的话题
-		topics := l.DB.LookupRegistrations(p.peerInfo.id).Filter("topic", "*", "").Keys()
+		topics := l.DB.LookupRegistrations(p.peerInfo.IpAddress).Filter("topic", "*", "").Keys()
 
 		// for each topic find the producer that matches this peer
 		// to add tombstone information
@@ -152,4 +153,29 @@ func (l *NSQLookupd) ShowNodes() {
 	for i, n := range nodes {
 		l.logf(LOG_INFO, "(%d)号节点: %s, 游离状态: %d", i, n.IpAddress, n.Free)
 	}
+}
+
+// 更新所有游离态节点，包括检查其最大容忍时间、计算所有游离节点的评分
+// 检查所有游离节点是否超过最大容忍时间
+func (l *NSQLookupd) checkCredit() {
+	freeproducers := l.DB.FindAllFreeNodes()
+	var temp float64
+	//遍历所有游离态节点
+	for _, fp := range freeproducers {
+		//计算该节点离上次断连过了多久
+		temp = float64(time.Now().Sub(time.Unix(0, atomic.LoadInt64(&fp.peerInfo.lastUpdate)))) / 1e9
+		l.logf(LOG_INFO, "距离该节点上次连接已经过去了%f秒了", temp)
+		l.logf(LOG_INFO, "该节点的最大容忍时间为%f秒", fp.peerInfo.freeNodeInfo.MaxTolerateTime)
+		//如果超过了最大容忍时间，则删除节点信息
+		if temp-fp.peerInfo.freeNodeInfo.MaxTolerateTime > 1e-8 {
+			registrations := l.DB.LookupRegistrations(fp.peerInfo.IpAddress)
+			for _, r := range registrations {
+				l.logf(LOG_INFO, "查找到的注册信息为：Category:%s ,Key:%s ,SubKey:%s", r.Category, r.Key, r.SubKey)
+				if removed, _ := l.DB.RemoveProducer(r, fp.peerInfo.IpAddress); removed {
+					l.logf(LOG_INFO, "节点(%s)游离太久，已被删除。", fp.peerInfo.IpAddress)
+				}
+			}
+		}
+	}
+	l.logf(LOG_INFO, "游离节点信用检查函数已调用")
 }
