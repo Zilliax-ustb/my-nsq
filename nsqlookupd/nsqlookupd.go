@@ -123,35 +123,9 @@ func (l *NSQLookupd) Exit() {
 func (l *NSQLookupd) ShowNodes() {
 	//查找所有节点
 	producers := l.DB.FindProducers("client", "", "")
-	nodes := make([]*node, len(producers))
-
-	//遍历上述节点   {p：当前节点，topics：该节点的所有话题}
-	for i, p := range producers {
-		//根据节点的id找到该节点所有的话题
-		topics := l.DB.LookupRegistrations(p.peerInfo.IpAddress).Filter("topic", "*", "").Keys()
-
-		// for each topic find the producer that matches this peer
-		// to add tombstone information
-		// 遍历当前节点的每个话题，检查其生产者是否被逻辑删除
-		tombstones := make([]bool, len(topics))
-		//当检查完该producer所有的topics后
-		nodes[i] = &node{
-			RemoteAddress:    p.peerInfo.RemoteAddress,
-			Hostname:         p.peerInfo.Hostname,
-			BroadcastAddress: p.peerInfo.BroadcastAddress,
-			TCPPort:          p.peerInfo.TCPPort,
-			HTTPPort:         p.peerInfo.HTTPPort,
-			Version:          p.peerInfo.Version,
-			Tombstones:       tombstones,
-			Topics:           topics,
-			Free:             p.peerInfo.free,
-			IpAddress:        p.peerInfo.IpAddress,
-		}
-	}
-
 	l.logf(LOG_INFO, "当前所有节点:")
-	for i, n := range nodes {
-		l.logf(LOG_INFO, "(%d)号节点: %s, 游离状态: %d", i, n.IpAddress, n.Free)
+	for i, p := range producers {
+		l.logf(LOG_INFO, "(%d)号节点: %s, 游离状态: %d", i, p.peerInfo.IpAddress, atomic.LoadInt64(&p.peerInfo.free))
 	}
 }
 
@@ -178,4 +152,39 @@ func (l *NSQLookupd) checkCredit() {
 		}
 	}
 	l.logf(LOG_INFO, "游离节点信用检查函数已调用")
+}
+
+// 计算所有游离节点的评分
+func (l *NSQLookupd) solveScore() {
+	//得到所有游离节点
+	producers := l.DB.FindAllFreeNodes()
+	//得到所有的topics
+	topics := l.DB.FindRegistrations("topic", "*", "").Keys()
+	//新建map，用于存储每个节点的评分
+	var score float64
+	var load float64
+	var temp float64
+	for _, p := range producers {
+		score = 0
+		//计算该节点的负载：
+		load = 0
+		for _, t := range topics {
+			topicProducers := l.DB.FindProducers("client", t, "")
+			for _, tp := range topicProducers {
+				if tp.peerInfo.IpAddress == p.peerInfo.IpAddress {
+					load = load + 1
+					break
+				}
+			}
+		}
+		//计算评分，由节点重连次数、节点断连时间间隔方差、节点连接时长方差、节点连接的主题数构成
+		score = float64(p.peerInfo.freeNodeInfo.ReconnectCount) - 0.01*p.peerInfo.freeNodeInfo.getRIvariance() - 0.01*p.peerInfo.freeNodeInfo.getCIvariance() + load
+		//计算已等待时间
+		temp = float64(time.Now().Sub(time.Unix(0, atomic.LoadInt64(&p.peerInfo.lastUpdate)))) / 1e9
+		//如果评分优秀，且断连时间已经过了最大容忍时间的90%，则认为其将要重连
+		if score > 1 && temp/p.peerInfo.freeNodeInfo.MaxTolerateTime > 0.9 {
+			atomic.StoreInt64(&p.peerInfo.free, 2)
+		}
+	}
+
 }

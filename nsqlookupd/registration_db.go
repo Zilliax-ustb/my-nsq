@@ -311,14 +311,14 @@ func ProducerMap2Slice(pm ProducerMap) Producers {
 	return producers
 }
 
-// 返回所有游离节点
+// 返回所有游离节点(游离态1和2,两种都代表断连，2表示在选举中胜出)
 func (r *RegistrationDB) FindAllFreeNodes() Producers {
 	//找到所有节点
 	producers := r.FindProducers("client", "", "")
 	var retproducers Producers
 	for _, p := range producers {
 		//如果该节点是游离态，则将其加入结果
-		if atomic.LoadInt64(&p.peerInfo.free) == 1 {
+		if atomic.LoadInt64(&p.peerInfo.free) != 0 {
 			retproducers = append(retproducers, p)
 		}
 	}
@@ -398,6 +398,18 @@ func (fni *FreeNodeInfo) getCIavage() float64 {
 		t = (t + 1) % 10
 	}
 	return res / float64(fni.rSize)
+}
+
+// 返回连接时长的方差
+func (fni *FreeNodeInfo) getCIvariance() float64 {
+	t := fni.cFont
+	ava := fni.getCIavage()
+	var res float64 = 0
+	for i := 0; i < fni.cSize; i++ {
+		res = res + math.Pow(fni.ConnectedInterval[t]-ava, 2)
+		t = (t + 1) % 10
+	}
+	return res / float64(fni.cSize)
 }
 
 // 更新游离节点的最大容忍时间

@@ -82,8 +82,9 @@ func (s *httpServer) doInfo(w http.ResponseWriter, req *http.Request, ps httprou
 }
 
 func (s *httpServer) doTopics(w http.ResponseWriter, req *http.Request, ps httprouter.Params) (interface{}, error) {
-	//测试信用检查函数
+	//测试
 	s.nsqlookupd.checkCredit()
+	s.nsqlookupd.solveScore()
 	topics := s.nsqlookupd.DB.FindRegistrations("topic", "*", "").Keys()
 	return map[string]interface{}{
 		"topics": topics,
@@ -121,6 +122,8 @@ func (s *httpServer) doLookup(w http.ResponseWriter, req *http.Request, ps httpr
 
 	//检查所有游离节点
 	s.nsqlookupd.checkCredit()
+	//调用评分解决函数
+	s.nsqlookupd.solveScore()
 
 	registration := s.nsqlookupd.DB.FindRegistrations("topic", topicName, "")
 	if len(registration) == 0 {
