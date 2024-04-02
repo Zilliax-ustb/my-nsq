@@ -76,8 +76,21 @@ func (p *LookupProtocolV1) IOLoop(c protocol.Client) error {
 		}
 	}
 
-	//需要判断err是否是断开连接，据此设置游离态
-	if strings.Contains(err.Error(), "An existing connection was forcibly closed by the remote host.") {
+	p.nsqlookupd.logf(LOG_INFO, "PROTOCOL(V1): [%s] exiting ioloop", client)
+
+	if _, ok := err.(*protocol.FatalClientErr); ok {
+		if client.peerInfo != nil {
+			registrations := p.nsqlookupd.DB.LookupRegistrations(client.peerInfo.IpAddress)
+			for _, r := range registrations {
+				if removed, _ := p.nsqlookupd.DB.RemoveProducer(r, client.peerInfo.IpAddress); removed {
+					p.nsqlookupd.logf(LOG_INFO, "DB: client(%s) UNREGISTER category:%s key:%s subkey:%s",
+						client, r.Category, r.Key, r.SubKey)
+				}
+			}
+			p.nsqlookupd.logf(LOG_INFO, "客户端(%s)出现Fatal错误，已断开连接并退出", client)
+		}
+		return err
+	} else {
 		p.nsqlookupd.logf(LOG_INFO, "检测到节点(%s)断开连接,已将其设置为游离态", client.peerInfo.IpAddress)
 		//设置节点为游离态
 		atomic.StoreInt64(&client.peerInfo.free, 1)
@@ -106,19 +119,6 @@ func (p *LookupProtocolV1) IOLoop(c protocol.Client) error {
 		return nil
 	}
 
-	p.nsqlookupd.logf(LOG_INFO, "PROTOCOL(V1): [%s] exiting ioloop", client)
-	//在出现与客户端通信错误后，删除该客户端的所有注册信息
-	if client.peerInfo != nil {
-		registrations := p.nsqlookupd.DB.LookupRegistrations(client.peerInfo.IpAddress)
-		for _, r := range registrations {
-			if removed, _ := p.nsqlookupd.DB.RemoveProducer(r, client.peerInfo.IpAddress); removed {
-				p.nsqlookupd.logf(LOG_INFO, "DB: client(%s) UNREGISTER category:%s key:%s subkey:%s",
-					client, r.Category, r.Key, r.SubKey)
-			}
-		}
-		p.nsqlookupd.logf(LOG_INFO, "客户端(%s)已断开连接并退出", client)
-	}
-	return err
 }
 
 func (p *LookupProtocolV1) Exec(client *ClientV1, reader *bufio.Reader, params []string) ([]byte, error) {
