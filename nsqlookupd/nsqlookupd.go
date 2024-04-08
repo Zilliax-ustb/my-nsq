@@ -9,10 +9,8 @@ import (
 	"log"
 	"net"
 	"os"
-	"os/signal"
 	"sync"
 	"sync/atomic"
-	"syscall"
 	"time"
 )
 
@@ -75,22 +73,22 @@ func (l *NSQLookupd) Main() error {
 		exitFunc(http_api.Serve(l.httpListener, httpServer, "HTTP", l.logf))
 	})
 
-	ec := make(chan os.Signal, 1)
-	signal.Notify(ec, syscall.SIGINT, syscall.SIGTERM)
+	//ec := make(chan os.Signal, 1)
+	//signal.Notify(ec, syscall.SIGINT, syscall.SIGTERM)
 	//开启一个协程来运行节点管理算法
 	//每隔15秒输出所有节点信息(包括游离态节点)
-	l.waitGroup.Wrap(func() {
-		ticker := time.NewTicker(15 * time.Second)
-		for {
-			select {
-			case <-ec:
-				l.logf(LOG_INFO, "程序结束，nsqlookupd已退出")
-				return
-			case <-ticker.C:
-				l.ShowNodes()
-			}
-		}
-	})
+	//l.waitGroup.Wrap(func() {
+	//	ticker := time.NewTicker(15 * time.Second)
+	//	for {
+	//		select {
+	//		case <-ec:
+	//			l.logf(LOG_INFO, "程序结束，nsqlookupd已退出")
+	//			return
+	//		case <-ticker.C:
+	//			l.ShowNodes()
+	//		}
+	//	}
+	//})
 
 	err := <-exitCh
 	return err
@@ -182,7 +180,7 @@ func (l *NSQLookupd) solveScore() {
 		//计算已等待时间
 		temp = float64(time.Now().Sub(time.Unix(0, atomic.LoadInt64(&p.peerInfo.lastUpdate)))) / 1e9
 		//如果评分优秀，且断连时间已经过了最大容忍时间的90%，则认为其将要重连
-		if score > 1 && temp/p.peerInfo.freeNodeInfo.MaxTolerateTime > 0.9 {
+		if score > 0 && p.peerInfo.freeNodeInfo.MaxTolerateTime-temp < 10 {
 			atomic.StoreInt64(&p.peerInfo.free, 2)
 		}
 	}
