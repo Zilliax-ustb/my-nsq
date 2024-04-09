@@ -367,7 +367,9 @@ func (fni *FreeNodeInfo) updateR(lastTime int64) {
 
 // 返回断连时间间隔的平均值
 func (fni *FreeNodeInfo) getRIavage() float64 {
-
+	if fni.rSize == 0 {
+		return 0
+	}
 	var res float64 = 0
 	t := fni.rFont
 	for i := 0; i < fni.rSize; i++ {
@@ -379,6 +381,9 @@ func (fni *FreeNodeInfo) getRIavage() float64 {
 
 // 返回断连时间间隔的方差
 func (fni *FreeNodeInfo) getRIvariance() float64 {
+	if fni.rSize == 0 {
+		return 0
+	}
 	t := fni.rFont
 	ava := fni.getRIavage()
 	var res float64 = 0
@@ -391,17 +396,23 @@ func (fni *FreeNodeInfo) getRIvariance() float64 {
 
 // 返回连接时长的平均值
 func (fni *FreeNodeInfo) getCIavage() float64 {
+	if fni.cSize == 0 {
+		return 0
+	}
 	var res float64 = 0
 	t := fni.cFont
 	for i := 0; i < fni.cSize; i++ {
 		res = res + fni.ConnectedInterval[t]
 		t = (t + 1) % 10
 	}
-	return res / float64(fni.rSize)
+	return res / float64(fni.cSize)
 }
 
 // 返回连接时长的方差
 func (fni *FreeNodeInfo) getCIvariance() float64 {
+	if fni.cSize == 0 {
+		return 0
+	}
 	t := fni.cFont
 	ava := fni.getCIavage()
 	var res float64 = 0
