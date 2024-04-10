@@ -35,6 +35,17 @@ type Producer struct {
 	OutOfDate        bool           `json:"out_of_date"`
 }
 
+type MyNode struct {
+	IpAddress         string    `json:"ip_address"`
+	Free              int64     `json:"free"`
+	ReconnectCount    int       `json:"reconnect_count"`
+	ReconnectInterval []float64 `json:"reconnect_interval"`
+	ReconnectVariance float64   `json:"reconnect_variance"`
+	ConnectInterval   []float64 `json:"connect_interval"`
+	ConnectVariance   float64   `json:"connect_variance"`
+	MaxToleranceTime  float64   `json:"max_tolerance_time"`
+}
+
 // UnmarshalJSON implements json.Unmarshaler and postprocesses of ProducerTopics and VersionObj
 func (p *Producer) UnmarshalJSON(b []byte) error {
 	var r struct {

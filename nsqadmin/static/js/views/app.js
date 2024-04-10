@@ -17,6 +17,7 @@ var LookupView = require('./lookup');
 var NodesView = require('./nodes');
 var NodeView = require('./node');
 var CounterView = require('./counter');
+var AnalyzeView = require('./analyze');
 
 var NodeModel = require('../models/node');
 var TopicModel = require('../models/topic');
@@ -42,6 +43,7 @@ var AppView = BaseView.extend({
         this.listenTo(Pubsub, 'nodes:show', this.showNodes);
         this.listenTo(Pubsub, 'node:show', this.showNode);
         this.listenTo(Pubsub, 'counter:show', this.showCounter);
+        this.listenTo(Pubsub, 'analyze:show', this.showAnalyze);
 
         this.listenTo(Pubsub, 'view:ready', function() {
             $('.rate').each(function(i, el) {
@@ -134,6 +136,12 @@ var AppView = BaseView.extend({
     showCounter: function() {
         this.showView(function() {
             return new CounterView();
+        });
+    },
+
+    showAnalyze: function() {
+        this.showView(function() {
+            return new AnalyzeView();
         });
     },
 

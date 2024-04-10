@@ -21,7 +21,7 @@ var VENDOR_CONFIG = {
         'bootbox',
     ],
     'target': 'vendor.js',
-    'targetDir': './static/build/'
+    'targetDir': './static/mybuild/'
 };
 
 function excludeVendor(b) {
@@ -56,7 +56,7 @@ function sassTask(root, inputFile) {
             .pipe(sass({
                 'sourceComments': 'map',
             }).on('error', onError))
-            .pipe(gulp.dest(path.join(root, 'build/')));
+            .pipe(gulp.dest(path.join(root, 'mybuild/')));
     };
 }
 
@@ -90,7 +90,7 @@ function browserifyTask(root, inputFile) {
                 .pipe(uglify())
                 .on('error', onError)
             .pipe(sourcemaps.write('./'))
-            .pipe(gulp.dest(path.join(root, 'build/')));
+            .pipe(gulp.dest(path.join(root, 'mybuild/')));
     };
 }
 
@@ -147,13 +147,13 @@ gulp.task('sync-static-assets', function() {
         path.join(ROOT, 'html/**'),
         path.join(ROOT, 'fonts/**'),
         path.join(ROOT, 'img/**')
-    ]).pipe(gulp.dest(path.join(ROOT, 'build')));
+    ]).pipe(gulp.dest(path.join(ROOT, 'mybuild')));
 });
 
 gulp.task('sass', sassTask(ROOT, '*.*css'));
 gulp.task('browserify', browserifyTask(ROOT, 'main.js'));
 gulp.task('build', gulp.parallel('sass', 'browserify', 'sync-static-assets', 'vendor-build-js'));
 gulp.task('watch', gulp.series('build', watchTask(ROOT)));
-gulp.task('clean', gulp.series(cleanTask(path.join(ROOT, 'build'))));
+gulp.task('clean', gulp.series(cleanTask(path.join(ROOT, 'mybuild'))));
 
 gulp.task('default', gulp.series('help'));
