@@ -423,6 +423,28 @@ func (fni *FreeNodeInfo) getCIvariance() float64 {
 	return res / float64(fni.cSize)
 }
 
+// 返回节点的重连时间间隔切片
+func (fni *FreeNodeInfo) getReconnectInterval() []float64 {
+	var res []float64
+	t := fni.rFont
+	for i := 0; i < fni.rSize; i++ {
+		res = append(res, fni.ReconnectionInterval[t])
+		t = (t + 1) % 10
+	}
+	return res
+}
+
+// 返回节点的连接时长隔切片
+func (fni *FreeNodeInfo) getConnectInterval() []float64 {
+	var res []float64
+	t := fni.cFont
+	for i := 0; i < fni.cSize; i++ {
+		res = append(res, fni.ConnectedInterval[t])
+		t = (t + 1) % 10
+	}
+	return res
+}
+
 // 更新游离节点的最大容忍时间
 // 传入一个系数theta，用来修正最大容忍时间，默认情况为1
 // 采用线性递增权重，第i个时间间隔的权重为2*i/n(n+1)，n为总数，其中i越大表示距离现在时间越近,i从1开始取

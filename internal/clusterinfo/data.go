@@ -235,6 +235,61 @@ func (c *ClusterInfo) GetLookupdProducers(lookupdHTTPAddrs []string) (Producers,
 	return producers, nil
 }
 
+func (c *ClusterInfo) GetMyNodes(lookupdHTTPAddrs []string) (MyNodes, error) {
+	var mynodes []*MyNode
+	var lock sync.Mutex
+	var wg sync.WaitGroup
+	var errs []error
+
+	mynodesByIp := make(map[string]*MyNode)
+
+	type respType struct {
+		MyNodes []*MyNode `json:"mynodes"`
+	}
+
+	for _, addr := range lookupdHTTPAddrs {
+		wg.Add(1)
+		go func(addr string) {
+			defer wg.Done()
+
+			endpoint := fmt.Sprintf("http://%s/mynodes", addr)
+			c.logf("CI[analyze]: querying nsqlookupd %s", endpoint)
+
+			var resp respType
+			err := c.client.GETV1(endpoint, &resp)
+			if err != nil {
+				lock.Lock()
+				errs = append(errs, err)
+				lock.Unlock()
+				return
+			}
+
+			lock.Lock()
+			defer lock.Unlock()
+			for _, mynode := range resp.MyNodes {
+				key := mynode.IpAddress
+				_, ok := mynodesByIp[key]
+				if !ok {
+					mynodesByIp[key] = mynode
+					mynodes = append(mynodes, mynode)
+				}
+			}
+		}(addr)
+	}
+	wg.Wait()
+
+	if len(errs) == len(lookupdHTTPAddrs) {
+		return nil, fmt.Errorf("failed to query any nsqlookupd: %s", ErrList(errs))
+	}
+
+	sort.Sort(MyNodesByIp{mynodes})
+
+	if len(errs) > 0 {
+		return mynodes, ErrList(errs)
+	}
+	return mynodes, nil
+}
+
 // GetLookupdTopicProducers returns Producers of all the nsqd for a given topic by
 // unioning the nodes returned from the given lookupd
 func (c *ClusterInfo) GetLookupdTopicProducers(topic string, lookupdHTTPAddrs []string) (Producers, error) {

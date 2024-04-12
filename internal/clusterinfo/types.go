@@ -288,8 +288,13 @@ func (c TopicStatsByHost) Less(i, j int) bool {
 
 type Producers []*Producer
 
+type MyNodes []*MyNode
+
 func (t Producers) Len() int      { return len(t) }
 func (t Producers) Swap(i, j int) { t[i], t[j] = t[j], t[i] }
+
+func (t MyNodes) Len() int      { return len(t) }
+func (t MyNodes) Swap(i, j int) { t[i], t[j] = t[j], t[i] }
 
 func (t Producers) HTTPAddrs() []string {
 	var addrs []string
@@ -312,6 +317,14 @@ type ProducersByHost struct {
 	Producers
 }
 
+type MyNodesByIp struct {
+	MyNodes
+}
+
 func (c ProducersByHost) Less(i, j int) bool {
 	return c.Producers[i].Hostname < c.Producers[j].Hostname
+}
+
+func (m MyNodesByIp) Less(i, j int) bool {
+	return m.MyNodes[i].IpAddress < m.MyNodes[j].IpAddress
 }

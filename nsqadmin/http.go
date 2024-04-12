@@ -106,6 +106,8 @@ func NewHTTPServer(nsqadmin *NSQAdmin) *httpServer {
 	router.Handle("GET", bp("/api/topics/:topic"), http_api.Decorate(s.topicHandler, log, http_api.V1))
 	router.Handle("GET", bp("/api/topics/:topic/:channel"), http_api.Decorate(s.channelHandler, log, http_api.V1))
 	router.Handle("GET", bp("/api/nodes"), http_api.Decorate(s.nodesHandler, log, http_api.V1))
+	//新增分析路由
+	router.Handle("GET", bp("/api/analyze"), http_api.Decorate(s.mynodesHandler, log, http_api.V1))
 	router.Handle("GET", bp("/api/nodes/:node"), http_api.Decorate(s.nodeHandler, log, http_api.V1))
 	router.Handle("POST", bp("/api/topics"), http_api.Decorate(s.createTopicChannelHandler, log, http_api.V1))
 	router.Handle("POST", bp("/api/topics/:topic"), http_api.Decorate(s.topicActionHandler, log, http_api.V1))
@@ -352,6 +354,26 @@ func (s *httpServer) nodesHandler(w http.ResponseWriter, req *http.Request, ps h
 		Nodes   clusterinfo.Producers `json:"nodes"`
 		Message string                `json:"message"`
 	}{producers, maybeWarnMsg(messages)}, nil
+}
+
+func (s *httpServer) mynodesHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params) (interface{}, error) {
+	var messages []string
+
+	mynodes, err := s.ci.GetMyNodes(s.nsqadmin.getOpts().NSQLookupdHTTPAddresses)
+	if err != nil {
+		pe, ok := err.(clusterinfo.PartialErr)
+		if !ok {
+			s.nsqadmin.logf(LOG_ERROR, "failed to get mynodes - %s", err)
+			return nil, http_api.Err{502, fmt.Sprintf("UPSTREAM_ERROR: %s", err)}
+		}
+		s.nsqadmin.logf(LOG_WARN, "%s", err)
+		messages = append(messages, pe.Error())
+	}
+
+	return struct {
+		MyNodes clusterinfo.MyNodes `json:"mynodes"`
+		Message string              `json:"message"`
+	}{mynodes, maybeWarnMsg(messages)}, nil
 }
 
 func (s *httpServer) nodeHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params) (interface{}, error) {

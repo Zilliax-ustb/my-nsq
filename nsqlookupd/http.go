@@ -43,6 +43,8 @@ func newHTTPServer(l *NSQLookupd) *httpServer {
 	router.Handle("GET", "/topics", http_api.Decorate(s.doTopics, log, http_api.V1))
 	router.Handle("GET", "/channels", http_api.Decorate(s.doChannels, log, http_api.V1))
 	router.Handle("GET", "/nodes", http_api.Decorate(s.doNodes, log, http_api.V1))
+	//新增返回节点信息路由
+	router.Handle("GET", "/mynodes", http_api.Decorate(s.doMyNodes, log, http_api.V1))
 
 	// only v1
 	router.Handle("POST", "/topic/create", http_api.Decorate(s.doCreateTopic, log, http_api.V1))
@@ -331,6 +333,57 @@ func (s *httpServer) doNodes(w http.ResponseWriter, req *http.Request, ps httpro
 
 	return map[string]interface{}{
 		"producers": nodes,
+	}, nil
+}
+
+type MyNode struct {
+	IpAddress         string    `json:"ip_address"`
+	Free              int64     `json:"free"`
+	ReconnectCount    int       `json:"reconnect_count"`
+	ReconnectInterval []float64 `json:"reconnect_interval"`
+	ReconnectVariance float64   `json:"reconnect_variance"`
+	ConnectInterval   []float64 `json:"connect_interval"`
+	ConnectVariance   float64   `json:"connect_variance"`
+	MaxToleranceTime  float64   `json:"max_tolerance_time"`
+}
+
+func (s *httpServer) doMyNodes(w http.ResponseWriter, req *http.Request, ps httprouter.Params) (interface{}, error) {
+
+	//查找所有节点
+	producers := s.nsqlookupd.DB.FindProducers("client", "", "")
+	mynodes := make([]*MyNode, len(producers))
+
+	for i, p := range producers {
+
+		//如果游离态信息为空，证明该节点为首次连接
+		if p.peerInfo.freeNodeInfo == nil {
+			mynodes[i] = &MyNode{
+				IpAddress:         p.peerInfo.IpAddress,
+				Free:              atomic.LoadInt64(&p.peerInfo.free),
+				ReconnectCount:    -1,
+				ReconnectInterval: nil,
+				ReconnectVariance: 0,
+				ConnectInterval:   nil,
+				ConnectVariance:   0,
+				MaxToleranceTime:  0,
+			}
+		} else {
+			mynodes[i] = &MyNode{
+				IpAddress:         p.peerInfo.IpAddress,
+				Free:              atomic.LoadInt64(&p.peerInfo.free),
+				ReconnectCount:    p.peerInfo.freeNodeInfo.ReconnectCount,
+				ReconnectInterval: p.peerInfo.freeNodeInfo.getReconnectInterval(),
+				ReconnectVariance: p.peerInfo.freeNodeInfo.getRIvariance(),
+				ConnectInterval:   p.peerInfo.freeNodeInfo.getConnectInterval(),
+				ConnectVariance:   p.peerInfo.freeNodeInfo.getRIvariance(),
+				MaxToleranceTime:  p.peerInfo.freeNodeInfo.MaxTolerateTime,
+			}
+		}
+
+	}
+
+	return map[string]interface{}{
+		"mynodes": mynodes,
 	}, nil
 }
 
