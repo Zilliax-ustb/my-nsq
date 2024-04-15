@@ -9,7 +9,7 @@
 <div class="row">
     <div class="col-md-6">
         <blockquote>
-            <p>Topic: <strong>{{name}}</strong>
+            <p>主题名称: <strong>{{name}}</strong>
         </blockquote>
     </div>
 </div>
@@ -17,10 +17,10 @@
 {{#unless nodes.length}}
 <div class="row">
     <div class="col-md-6">
-        <h4>Topic Message Queue</h4>
+        <h4>主题消息队列</h4>
         <div class="alert alert-warning">
-            <h4>Notice</h4> No producers exist for this topic.
-            <p>See <a href="{{basePath "/lookup"}}">Lookup</a> for more information.
+            <h4>Notice</h4> 该主题没有任何生产者.
+            <p>See <a href="{{basePath "/lookup"}}">查找</a> 来得到更多信息.
         </div>
     </div>
 </div>
@@ -28,16 +28,16 @@
 {{#if isAdmin}}
 <div class="row topic-actions">
     <div class="col-md-2">
-        <button class="btn btn-medium btn-warning" data-action="empty">Empty Queue</button>
+        <button class="btn btn-medium btn-warning" data-action="empty">清空队列</button>
     </div>
     <div class="col-md-2">
-        <button class="btn btn-medium btn-danger" data-action="delete">Delete Topic</button>
+        <button class="btn btn-medium btn-danger" data-action="delete">删除主题</button>
     </div>
     <div class="col-md-2">
         {{#if paused}}
-        <button class="btn btn-medium btn-success" data-action="unpause">UnPause Topic</button>
+        <button class="btn btn-medium btn-success" data-action="unpause">解除主题暂停</button>
         {{else}}
-        <button class="btn btn-medium btn-primary" data-action="pause">Pause Topic</button>
+        <button class="btn btn-medium btn-primary" data-action="pause">暂停主题</button>
         {{/if}}
     </div>
 </div>
@@ -45,7 +45,7 @@
 
 <div class="row">
     <div class="col-md-12">
-    <h4>Topic Message Queue</h4>
+    <h4>主题消息队列</h4>
     <table class="table table-bordered table-condensed">
         {{#if e2e_processing_latency.percentiles.length}}
         <tr>
@@ -54,12 +54,12 @@
         </tr>
         {{/if}}
         <tr>
-            <th>NSQd Host</th>
-            <th>Depth</th>
-            <th>Memory + Disk</th>
-            <th>Messages</th>
+            <th>NSQd 地址</th>
+            <th>深度</th>
+            <th>内存 + 磁盘 的消息数</th>
+            <th>已完成消息数</th>
             {{#if graph_active}}<th>Rate</th>{{/if}}
-            <th>Channels</th>
+            <th>订阅频道数</th>
             {{#each e2e_processing_latency.percentiles}}
                 <th>{{floatToPercent quantile}}<sup>{{percSuffix quantile}}</sup></th>
             {{/each}}
@@ -145,14 +145,14 @@
 <div class="row">
     {{#unless channels.length}}
     <div class="col-md-6">
-        <h4>Channel Message Queues</h4>
+        <h4>频道消息队列</h4>
         <div class="alert alert-warning">
-            <h4>Notice</h4> No channels exist for this topic.
+            <h4>Notice</h4> 该主题不存在频道.
             <p>Messages will queue at the topic until a channel is created.
         </div>
     {{else}}
     <div class="col-md-12">
-        <h4>Channel Message Queues</h4>
+        <h4>频道消息队列</h4>
         <table class="table table-bordered table-condensed">
             {{#if e2e_processing_latency.percentiles.length}}
             <tr>
@@ -161,15 +161,15 @@
             </tr>
             {{/if}}
             <tr>
-                <th>Channel</th>
-                <th>Depth</th>
-                <th>Memory + Disk</th>
-                <th>In-Flight</th>
-                <th>Deferred</th>
-                <th>Requeued</th>
-                <th>Timed Out</th>
-                <th>Messages</th>
-                <th>Connections</th>
+                <th>频道名称</th>
+                <th>深度</th>
+                <th>内存 + 磁盘 消息数</th>
+                <th>正在消费数量</th>
+                <th>推迟数量</th>
+                <th>重新排队数量</th>
+                <th>超时数量</th>
+                <th>已完成消息数量</th>
+                <th>已连接时长</th>
                 {{#each e2e_processing_latency.percentiles}}
                 <th>{{floatToPercent quantile}}<sup>{{percSuffix quantile}}</sup></th>
                 {{/each}}

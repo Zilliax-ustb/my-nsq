@@ -3,7 +3,7 @@
 
 <div class="row">
     <div class="col-md-12">
-        <h2>Topics</h2>
+        <h2>主题</h2>
     </div>
 </div>
 
@@ -12,9 +12,9 @@
     {{#if collection.length}}
         <table class="table table-condensed table-bordered">
             <tr>
-                <th>Topic</th>
+                <th>主题</th>
                 {{#if graph_active}}<th width="120">Depth</th>{{/if}}
-                {{#if graph_active}}<th width="120">Messages</th>{{/if}}
+                {{#if graph_active}}<th width="120">消息数</th>{{/if}}
                 {{#if graph_active}}<th width="120">Rate</th>{{/if}}
             </tr>
             {{#each collection}}
@@ -27,7 +27,7 @@
             {{/each}}
         </table>
     {{else}}
-        <div class="alert alert-warning"><h4>Notice</h4>No Topics Found</div>
+        <div class="alert alert-warning"><h4>Notice</h4>没有找到主题</div>
     {{/if}}
     </div>
 </div>

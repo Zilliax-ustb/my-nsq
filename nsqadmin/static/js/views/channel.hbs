@@ -10,8 +10,8 @@
 <div class="row">
     <div class="col-md-6">
         <blockquote>
-            <p>Topic: <strong>{{topic}}</strong>
-            <p>Channel: <strong>{{name}}</strong>
+            <p>主题: <strong>{{topic}}</strong>
+            <p>频道: <strong>{{name}}</strong>
         </blockquote>
     </div>
 </div>
@@ -20,8 +20,8 @@
 <div class="row">
     <div class="col-md-6">
         <div class="alert alert-warning">
-            <h4>Notice</h4> No producers exist for this topic/channel.
-            <p>See <a class="link" href="{{basePath "/lookup"}}">Lookup</a> for more information.
+            <h4>Notice</h4> 该主题/频道没有任何生产者.
+            <p>See <a class="link" href="{{basePath "/lookup"}}">查找</a> 来得到更多信息.
         </div>
     </div>
 </div>
@@ -29,16 +29,16 @@
 {{#if isAdmin}}
 <div class="row channel-actions">
     <div class="col-md-2">
-        <button class="btn btn-medium btn-warning" data-action="empty">Empty Queue</button>
+        <button class="btn btn-medium btn-warning" data-action="empty">清空队列</button>
     </div>
     <div class="col-md-2">
-        <button class="btn btn-medium btn-danger" data-action="delete">Delete Channel</button>
+        <button class="btn btn-medium btn-danger" data-action="delete">删除频道</button>
     </div>
     <div class="col-md-2">
         {{#if paused}}
-        <button class="btn btn-medium btn-success" data-action="unpause">UnPause Channel</button>
+        <button class="btn btn-medium btn-success" data-action="unpause">解除频道暂停</button>
         {{else}}
-        <button class="btn btn-medium btn-primary" data-action="pause">Pause Channel</button>
+        <button class="btn btn-medium btn-primary" data-action="pause">暂停频道</button>
         {{/if}}
     </div>
 </div>
@@ -46,27 +46,27 @@
 
 <div class="row">
     <div class="col-md-12">
-    <h4>Channel</h4>
+    <h4>频道</h4>
     <table class="table table-bordered table-condensed">
         <tr>
             <th>&nbsp;</th>
-            <th colspan="4" class="text-center">Message Queues</th>
+            <th colspan="4" class="text-center">消息队列</th>
             <th colspan="{{#if graph_active}}5{{else}}4{{/if}}" class="text-center">Statistics</th>
             {{#if e2e_processing_latency.percentiles.length}}
             <th colspan="{{e2e_processing_latency.percentiles.length}}">E2E Processing Latency</th>
             {{/if}}
         </tr>
         <tr>
-            <th>NSQd Host</th>
-            <th>Depth</th>
-            <th>Memory + Disk</th>
-            <th>In-Flight</th>
-            <th>Deferred</th>
-            <th>Requeued</th>
-            <th>Timed Out</th>
-            <th>Messages</th>
+            <th>NSQd 地址</th>
+            <th>深度</th>
+            <th>内存 + 磁盘 消息数量</th>
+            <th>正在处理消息数量</th>
+            <th>推迟消息数量</th>
+            <th>重新排队消息数量</th>
+            <th>超时消息数量</th>
+            <th>已完成消息数量</th>
             {{#if graph_active}}<th>Rate</th>{{/if}}
-            <th>Connections</th>
+            <th>已连接时长</th>
             {{#each e2e_processing_latency.percentiles}}
                 <th>{{floatToPercent quantile}}<sup>{{percSuffix quantile}}</sup></th>
             {{/each}}
@@ -165,25 +165,25 @@
 </div>
 {{/unless}}
 
-<h4>Client Connections</h4>
+<h4>客户端连接</h4>
 
 <div class="row">
     <div class="col-md-12">
         {{#unless clients.length}}
-            <div class="alert alert-warning"><h4>Notice</h4>No clients connected to this channel</div>
+            <div class="alert alert-warning"><h4>Notice</h4>没有客户端连接到此频道</div>
         {{else}}
         <table class="table table-bordered table-condensed">
             <tr>
-                <th>Client Host</th>
-                <th>User-Agent</th>
-                <th>Attributes</th>
-                <th>NSQd Host</th>
-                <th>In-Flight</th>
-                <th>Ready Count</th>
-                <th>Finished</th>
-                <th>Requeued</th>
-                <th>Messages</th>
-                <th>Connected</th>
+                <th>客户端地址</th>
+                <th>客户端版本号</th>
+                <th>属性</th>
+                <th>NSQd 地址</th>
+                <th>正在处理数量</th>
+                <th>准备接收数量</th>
+                <th>已完成数量</th>
+                <th>重新排队数量</th>
+                <th>已完成消息数</th>
+                <th>已连接时长</th>
             </tr>
             {{#each clients}}
             <tr>

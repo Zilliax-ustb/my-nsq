@@ -17,7 +17,7 @@ func main() {
 	cfg := nsq.NewConfig()
 	cfg.Set("lookupd_poll_jitter", 0)
 	cfg.Set("nsqd_retry_times", 6)
-	consumer, err := nsq.NewConsumer("test_topic", "c1", cfg)
+	consumer, err := nsq.NewConsumer("test", "c1", cfg)
 	if err != nil {
 		log.Fatal(err)
 	}

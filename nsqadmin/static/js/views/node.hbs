@@ -2,7 +2,7 @@
 {{> error}}
 
 <ol class="breadcrumb">
-    <li><a class="link" href="{{basePath "/nodes"}}">Nodes</a>
+    <li><a class="link" href="{{basePath "/nodes"}}">节点列表</a>
     <li class="active">{{name}}</li>
 </ol>
 
@@ -37,24 +37,24 @@
     <div class="col-md-12">
     {{#unless topics.length}}
         <div class="alert alert-warning">
-            <h4>Notice</h4> No topics exist on this node.
+            <h4>Notice</h4> 该节点上没有任何主题.
         </div>
     {{else}}
     <table class="table table-condensed">
         <tr>
-            <td colspan="2"><strong>{{../topics.length}}</strong> Topics</td>
+            <td colspan="2"><strong>{{../topics.length}}</strong> 主题</td>
             <td colspan="7"></td>
-            <td><strong>{{commafy total_messages}}</strong> Messages</td>
-            <td><strong>{{commafy total_clients}}</strong> Clients</td>
+            <td><strong>{{commafy total_messages}}</strong> 消息</td>
+            <td><strong>{{commafy total_clients}}</strong> 客户端</td>
         </tr>
         {{#each topics}}
         <tr>
-            <th colspan="3">Topic</th>
-            <th>Depth</th>
-            <th>Memory + Disk</th>
+            <th colspan="3">主题</th>
+            <th>深度</th>
+            <th>内存 + 磁盘</th>
             <th colspan="4"></th>
-            <th>Messages</th>
-            <th>Channels</th>
+            <th>消息数</th>
+            <th>订阅频道数</th>
         </tr>
         <tr class="info">
             <td colspan="3">
@@ -76,22 +76,22 @@
         {{#unless channels.length}}
         <tr>
             <td colspan="11">
-              <div class="alert alert-warning"><h4>Notice</h4> No channels exist for this topic.</div>
+              <div class="alert alert-warning"><h4>Notice</h4> 没有任何频道订阅该主题.</div>
             </td>
         </tr>
         {{else}}
         {{#each channels}}
         <tr>
             <th width="25"></th>
-            <th colspan="2">Channel</th>
-            <th>Depth</th>
-            <th>Memory + Disk</th>
-            <th>In-Flight</th>
-            <th>Deferred</th>
-            <th>Requeued</th>
-            <th>Timed Out</th>
-            <th>Messages</th>
-            <th>Connections</th>
+            <th colspan="2">频道名称</th>
+            <th>深度</th>
+            <th>内存 + 磁盘 中的数量</th>
+            <th>正在消费数</th>
+            <th>推迟数量</th>
+            <th>重新排队数量</th>
+            <th>超时数量</th>
+            <th>消息数量</th>
+            <th>连接数量</th>
         </tr>
         <tr class="warning">
             <td></td>
@@ -117,22 +117,22 @@
         {{#unless clients.length}}
         <tr>
             <td colspan="11">
-                <div class="alert alert-warning"><h4>Notice</h4>No clients connected to this channel.</div>
+                <div class="alert alert-warning"><h4>Notice</h4>该频道没有消费者连接.</div>
             </td>
         </tr>
         {{else}}
         <tr>
             <th></th>
-            <th>Client Host</th>
-            <th>User-Agent</th>
+            <th>消费者地址</th>
+            <th>消费者客户端版本</th>
             <th></th>
             <th>Attributes</th>
-            <th>In-Flight</th>
-            <th>Ready Count</th>
-            <th>Requeued</th>
-            <th>Finished</th>
-            <th>Messages</th>
-            <th>Connected</th>
+            <th>正在消费数</th>
+            <th>可消费数量</th>
+            <th>重新排队数量</th>
+            <th>已完成数量</th>
+            <th>消息数量</th>
+            <th>已连接时长</th>
         </tr>
         {{#each clients}}
         <tr>

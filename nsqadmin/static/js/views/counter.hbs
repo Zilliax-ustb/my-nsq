@@ -71,7 +71,7 @@ body {
   box-shadow: inset rgb(130, 130, 130) 0 0 0px 1px;
   border-left: 1px solid black;
   border-top: 1px solid black;
-  border-bottom: 1px solid black;  
+  border-bottom: 1px solid black;
 }
 
 /*
@@ -97,7 +97,7 @@ body {
   -o-box-sizing: border-box;
   box-sizing: border-box;
   line-height: 70px;
-  border-top-left-radius: 5px; 
+  border-top-left-radius: 5px;
   border-top-right-radius: 5px;
   background-position: 0px 0px;
   border-bottom: 1px solid black;
@@ -105,9 +105,9 @@ body {
 
 .number .bottom {
   line-height: 0px;
-  border-bottom-left-radius: 5px; 
+  border-bottom-left-radius: 5px;
   border-bottom-right-radius: 5px;
-  background-position: 0px 35px; 
+  background-position: 0px 35px;
 }
 
 /*
@@ -125,7 +125,7 @@ body {
   animation-duration: 0.2s;
   animation-name: top;
   animation-fill-mode: forwards;
-  animation-timing-function: ease-in;  
+  animation-timing-function: ease-in;
   z-index: 1;
 
   -moz-transform-origin: 0 100%;
@@ -141,7 +141,7 @@ body {
     -o-transform: scaleY(1);
     transform: scaleY(1);
   }
- 
+
   to {
     -moz-transform: scaleY(0);
     -webkit-transform: scaleY(0);
@@ -169,7 +169,7 @@ body {
   from {
     -moz-transform: scaleY(0);
   }
- 
+
   to {
     -moz-transform: scaleY(1);
   }
@@ -200,7 +200,7 @@ body {
 <div id="numbers">
 <div class="numbers">
 </div>
-<p class="processed">Messages Processed</p>
+<p class="processed">已处理消息数</p>
 <p class="messagerate"></p>
 {{#if graph_active}}
     <img id="big_graph" height="500" src="{{large_graph "counter" "*" "" "" "message_count"}}"/>

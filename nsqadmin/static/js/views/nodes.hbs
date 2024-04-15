@@ -3,7 +3,7 @@
 
 <div class="row">
     <div class="col-md-12">
-        <h2>NSQd Nodes ({{collection.length}})</h2>
+        <h2>NSQd 节点列表 ({{collection.length}})</h2>
     </div>
 </div>
 
@@ -11,15 +11,15 @@
     <div class="col-md-12">
         <table class="table table-condensed table-bordered">
             <tr>
-                <th>Hostname</th>
-                <th>Broadcast Address</th>
-                <th>TCP Port</th>
-                <th>HTTP Port</th>
-                <th>Version</th>
+                <th>主机名称</th>
+                <th>广播地址</th>
+                <th>TCP端口</th>
+                <th>HTTP端口</th>
+                <th>版本号</th>
                 {{#if nsqlookupd.length}}
-                <th>Lookupd Conns.</th>
+                <th>Lookupd连接</th>
                 {{/if}}
-                <th>Topics</th>
+                <th>主题</th>
             </tr>
             {{#each collection}}
             <tr {{#if out_of_date}}class="warning"{{/if}}>

@@ -12,10 +12,10 @@
         <div class="collapse navbar-collapse" id="navbar">
             <ul class="nav navbar-nav">
                 <li><a class="link" href="{{basePath "/"}}">Streams</a></li>
-                <li><a class="link" href="{{basePath "/nodes"}}">Nodes</a></li>
-                <li><a class="link" href="{{basePath "/counter"}}">Counter</a></li>
-                <li><a class="link" href="{{basePath "/lookup"}}">Lookup</a></li>
-                <li><a class="link" href="{{basePath "/analyze"}}">AnalyzeNodes</a></li>
+                <li><a class="link" href="{{basePath "/nodes"}}">节点列表</a></li>
+                <li><a class="link" href="{{basePath "/counter"}}">消费计数</a></li>
+                <li><a class="link" href="{{basePath "/lookup"}}">查找</a></li>
+                <li><a class="link" href="{{basePath "/analyze"}}">节点状态分析</a></li>
                 {{#if graph_enabled}}
                 <li class="dropdown">
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><span class="glyphicon glyphicon-picture white"></span> {{graph_interval}} <span class="caret"></span></a>
@@ -29,7 +29,7 @@
                 {{/if}}
             </ul>
             <ul class="nav navbar-nav navbar-right">
-                <li><a href="https://nsq.io/">Documentation</a></li>
+                <li><a href="https://nsq.io/">官方文档</a></li>
                 <li><a href="https://github.com/nsqio/nsq">GitHub</a></li>
                 <li class="hidden-xs"><p class="navbar-text"><span class="label label-success">v{{version}}</span></p></li>
                 </ul>
