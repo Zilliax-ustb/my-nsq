@@ -92,6 +92,7 @@ func NewHTTPServer(nsqadmin *NSQAdmin) *httpServer {
 	router.Handle("GET", bp("/nodes/:node"), http_api.Decorate(s.indexHandler, log))
 	router.Handle("GET", bp("/counter"), http_api.Decorate(s.indexHandler, log))
 	router.Handle("GET", bp("/lookup"), http_api.Decorate(s.indexHandler, log))
+	router.Handle("GET", bp("/analyze"), http_api.Decorate(s.indexHandler, log))
 
 	router.Handle("GET", bp("/static/:asset"), http_api.Decorate(s.staticAssetHandler, log, http_api.PlainText))
 	router.Handle("GET", bp("/fonts/:asset"), http_api.Decorate(s.staticAssetHandler, log, http_api.PlainText))

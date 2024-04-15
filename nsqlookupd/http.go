@@ -375,7 +375,7 @@ func (s *httpServer) doMyNodes(w http.ResponseWriter, req *http.Request, ps http
 				ReconnectInterval: p.peerInfo.freeNodeInfo.getReconnectInterval(),
 				ReconnectVariance: p.peerInfo.freeNodeInfo.getRIvariance(),
 				ConnectInterval:   p.peerInfo.freeNodeInfo.getConnectInterval(),
-				ConnectVariance:   p.peerInfo.freeNodeInfo.getRIvariance(),
+				ConnectVariance:   p.peerInfo.freeNodeInfo.getCIvariance(),
 				MaxToleranceTime:  p.peerInfo.freeNodeInfo.MaxTolerateTime,
 			}
 		}

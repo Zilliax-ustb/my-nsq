@@ -1,0 +1,65 @@
+{{> warning}}
+{{> error}}
+
+<div class="row">
+    <div class="col-md-12">
+        <h2>All NSQd Nodes ({{mynodes.length}})</h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <table class="table table-condensed table-bordered">
+            <tr>
+                <th>节点Ip地址</th>
+                <th>节点状态</th>
+                <th>节点重连次数</th>
+                <th>节点最近几次重连间隔</th>
+                <th>节点重连时间方差</th>
+                <th>节点最近几次连接时长</th>
+                <th>节点连接时长方差</th>
+                <th>最大容忍时间</th>
+            </tr>
+            {{#each mynodes}}
+                <tr>
+                <td>{{ip_address}}</td>
+                <td>{{free}}</td>
+                {{#compare reconnect_count -1}}
+                    <td>{{reconnect_count}}次</td>
+                    {{#if reconnect_interval.length}}
+                        <td>
+                            <a class="conn-count btn btn-default btn-xs btn-warning">{{reconnect_interval.length}}</a>
+                            <div style="display: none;">
+                                {{#each reconnect_interval}}{{toFixed this 3}}秒<br/>{{/each}}
+                            </div>
+                        </td>
+                    {{else}}
+                        <td>暂无</td>
+                    {{/if}}
+                    <td>{{toFixed reconnect_variance 3}}</td>
+                    {{#if connect_interval.length}}
+                        <td>
+                            <a class="conn-count btn btn-default btn-xs btn-warning">{{connect_interval.length}}</a>
+                            <div style="display: none;">
+                                {{#each connect_interval}}{{toFixed this 3}}秒<br/>{{/each}}
+                            </div>
+                        </td>
+                    {{else}}
+                        <td>暂无</td>
+                    {{/if}}
+                    <td>{{toFixed connect_variance 3}}</td>
+                    <td>{{toFixed max_tolerance_time 3}}秒</td>
+                {{else}}
+                    <td>暂无</td>
+                    <td>暂无</td>
+                    <td>暂无</td>
+                    <td>暂无</td>
+                    <td>暂无</td>
+                    <td>暂无</td>
+                {{/compare}}
+                </tr>
+            {{/each}}
+        </table>
+    </div>
+</div>
+

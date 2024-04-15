@@ -126,6 +126,18 @@ Handlebars.registerHelper('ifgteq', function(a, b, options) {
     return (a >= b) ? options.fn(this) : options.inverse(this);
 });
 
+Handlebars.registerHelper('compare', function(a, b, options) {
+    return (a > b) ? options.fn(this) : options.inverse(this);
+});
+
+Handlebars.registerHelper('toFixed', function(value, precision) {
+    if (typeof value === 'number') {
+        return value.toFixed(precision);
+    } else {
+        return value; // 或抛出错误，根据实际情况处理非数字输入
+    }
+});
+
 Handlebars.registerHelper('iflteq', function(a, b, options) {
     return (a <= b) ? options.fn(this) : options.inverse(this);
 });
