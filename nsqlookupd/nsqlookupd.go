@@ -176,7 +176,7 @@ func (l *NSQLookupd) solveScore() {
 			}
 		}
 		//计算评分，由节点重连次数、节点断连时间间隔方差、节点连接时长方差、节点连接的主题数构成
-		//score = float64(p.peerInfo.freeNodeInfo.ReconnectCount) - 0.01*p.peerInfo.freeNodeInfo.getRIvariance() - 0.01*p.peerInfo.freeNodeInfo.getCIvariance() + load
+		//score = float64(p.peerInfo.freeNodeInfo.ReconnectCount) - 0.01*p.peerInfo.freeNodeInfo.getRIvariance() - 0.001*p.peerInfo.freeNodeInfo.getCIvariance() + load
 		score = float64(1+p.peerInfo.freeNodeInfo.ReconnectCount) - 0.01*p.peerInfo.freeNodeInfo.getRIvariance() + load
 		//计算已等待时间
 		temp = float64(time.Now().Sub(time.Unix(0, atomic.LoadInt64(&p.peerInfo.lastUpdate)))) / 1e9
@@ -185,7 +185,7 @@ func (l *NSQLookupd) solveScore() {
 		l.logf(LOG_INFO, "该节点的评分为：%f", score)
 		l.logf(LOG_INFO, "该节点的可信时间为%f：", p.peerInfo.freeNodeInfo.MaxTolerateTime-temp)
 		//如果评分优秀，且断连时间已经过了最大容忍时间的90%，则认为其将要重连
-		if score > 0 && p.peerInfo.freeNodeInfo.MaxTolerateTime-temp < 15 {
+		if score > 0 && p.peerInfo.freeNodeInfo.MaxTolerateTime-temp < 20 {
 			atomic.StoreInt64(&p.peerInfo.free, 2)
 		}
 	}

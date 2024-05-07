@@ -106,7 +106,7 @@ func (p *LookupProtocolV1) IOLoop(c protocol.Client) error {
 				cFont:                0,
 				cRear:                0,
 				cSize:                0,
-				MaxTolerateTime:      120,
+				MaxTolerateTime:      300,
 			}
 			client.peerInfo.freeNodeInfo = fnInfo
 			client.peerInfo.freeNodeInfo.updateC(atomic.LoadInt64(&client.peerInfo.ConnectDate))
